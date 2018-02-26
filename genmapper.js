@@ -1,3 +1,5 @@
+window.console.log("genmapper.js first line");
+//alert('sasa');
 class GenMapper {
   // GenMapper
   // App for mapping generations of simple churches
@@ -19,6 +21,18 @@ class GenMapper {
     } else {
       this.language = 'en'
     }
+    this.baseurl = GenMapperBase.baseurl || '/wp-content/plugins/gen-mapper' // '..' 
+    this.mainEl = 'genmap-main'
+    this.mainsvgEl = 'genmap-main-svg'
+    this.alertEl = 'alert-message'
+    this.editEl = 'edit-group'
+    this.introEl = 'intro'
+    this.introcontentEl = 'intro-content'
+    this.editsubmitEl = 'edit-submit'
+    this.leftmenuEl = 'left-menu'
+    this.alertmessagetextEl = 'alert-message-text'
+    
+    
 
     this.margin = {top: 50, right: 30, bottom: 50, left: 30}
     this.projectName = i18next.t('menu.defaultProjectName')
@@ -32,7 +46,7 @@ class GenMapper {
       })
 
     this.setSvgHeight()
-    this.svg = d3.select('#main-svg')
+    this.svg = d3.select('#'+this.mainsvgEl)
       .call(this.zoom)
       .on('dblclick.zoom', null)
     this.g = this.svg.append('g')
@@ -87,16 +101,16 @@ class GenMapper {
     const windowHeight = document.documentElement.clientHeight
     const leftMenuHeight = document.getElementById('left-menu').clientHeight
     const height = Math.max(windowHeight, leftMenuHeight + 10)
-    d3.select('#main-svg')
+    d3.select('#'+this.mainsvgEl)
       .attr('height', height)
   }
 
   loadHTMLContent () {
     document.getElementById('left-menu').innerHTML = '<div id="template-logo">' +
     i18next.t('template.logo', '') +
-    '<button onclick="genmapper.introSwitchVisibility()" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.helpAbout') + '"><img src="../icons/266-question.svg"></button>' +
+    '<button onclick="genmapper.introSwitchVisibility()" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.helpAbout') + '"><img src="' + this.baseurl + '/icons/266-question.svg"></button>' +
     '<div class="dropdown" id="lang-selector">' +
-    '<button aria-label="Language"><img src="../icons/203-earth.svg"></button>' +
+    '<button aria-label="Language"><img src="' + this.baseurl + '/icons/203-earth.svg"></button>' +
     '<ul class="dropdown-content">' +
     '  <li><button onclick="genmapper.switchLanguage(this)" id="lang-en">English</button></li>' +
     '  <li><button onclick="genmapper.switchLanguage(this)" id="lang-cs">Čeština</button></li>' +
@@ -107,15 +121,15 @@ class GenMapper {
     '  <li><button onclick="genmapper.switchLanguage(this)" id="lang-sq">Shqip</button></li>' +
     '</ul>' +
     '</div>' +
-    '<button id="project-name" class="hint--rounded hint--right" aria-label=""><img src="../icons/039-file-text2.svg"></button>' +
-    '<button onclick="genmapper.origPosition();" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.originalZoom') + '"><img src="../icons/135-search.svg"></i></button>' +
-    '<button onclick="genmapper.zoomIn();" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.zoomIn') + '"><img src="../icons/136-zoom-in.svg"></i></button>' +
-    '<button onclick="genmapper.zoomOut();" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.zoomOut') + '"><img src="../icons/137-zoom-out.svg"></i></button>' +
-    '<button onclick="genmapper.onLoad(\'file-input\')" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.importXlsxCsv') + '"><img src="../icons/098-upload.svg"></button>' +
+    '<button id="project-name" class="hint--rounded hint--right" aria-label=""><img src="' + this.baseurl + '/icons/039-file-text2.svg"></button>' +
+    '<button onclick="genmapper.origPosition();" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.originalZoom') + '"><img src="' + this.baseurl + '/icons/135-search.svg"></i></button>' +
+    '<button onclick="genmapper.zoomIn();" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.zoomIn') + '"><img src="' + this.baseurl + '/icons/136-zoom-in.svg"></i></button>' +
+    '<button onclick="genmapper.zoomOut();" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.zoomOut') + '"><img src="' + this.baseurl + '/icons/137-zoom-out.svg"></i></button>' +
+    '<button onclick="genmapper.onLoad(\'file-input\')" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.importXlsxCsv') + '"><img src="' + this.baseurl + '/icons/098-upload.svg"></button>' +
     '<input type="file" id="file-input" onchange="genmapper.importFile()" style="display:none;">' +
-    '<button onclick="genmapper.outputCsv()" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.exportCsv') + '"><img src="../icons/097-download.svg"></button>' +
-    '<button onclick="genmapper.printMap(\'vertical\');" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.btnPrintVertical') + '"><img src="../icons/print-vertical.svg"></button>' +
-    '<button onclick="genmapper.printMap(\'horizontal\');" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.btnPrintHorizontal') + '"><img src="../icons/print-horizontal.svg"></button>'
+    '<button onclick="genmapper.outputCsv()" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.exportCsv') + '"><img src="' + this.baseurl + '/icons/097-download.svg"></button>' +
+    '<button onclick="genmapper.printMap(\'vertical\');" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.btnPrintVertical') + '"><img src="' + this.baseurl + '/icons/print-vertical.svg"></button>' +
+    '<button onclick="genmapper.printMap(\'horizontal\');" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.btnPrintHorizontal') + '"><img src="' + this.baseurl + '/icons/print-horizontal.svg"></button>'
 
     document.getElementById('edit-group').innerHTML = '<div id="edit-group-content">' +
     '  <h1>' + i18next.t('editGroup.editGroup') + '</h1>' +
@@ -144,8 +158,8 @@ class GenMapper {
     '<p><strong style="color:red">' + i18next.t('help.importExportWarningChangesLost') + '</strong><br>' +
     i18next.t('help.importExportContent') + '<br><br>' +
     i18next.t('help.exportSafariIssuePart1') +
-    '<img src="../safari-export-issue-0.png" style="margin:10px; margin-left:0px;" alt="safari export issue"><br>' + i18next.t('help.exportSafariIssuePart2') +
-    '<br><img src="../safari-export-issue-1.png" style="margin:10px; margin-left:0px;" alt="safari export issue">' +
+    '<img src="' + this.baseurl + '/safari-export-issue-0.png" style="margin:10px; margin-left:0px;" alt="safari export issue"><br>' + i18next.t('help.exportSafariIssuePart2') +
+    '<br><img src="' + this.baseurl + '/safari-export-issue-1.png" style="margin:10px; margin-left:0px;" alt="safari export issue">' +
     '<br>' + i18next.t('help.exportToPdf') + '</p>' +
     '<h3>' + i18next.t('help.panZoomHeader') + '</h3>' +
     '<p>' + i18next.t('help.panZoomContent') + '</p>' +
@@ -197,7 +211,7 @@ class GenMapper {
 
   origPosition () {
     this.zoom.scaleTo(this.svg, 1)
-    const origX = this.margin.left + (document.getElementById('main').clientWidth / 2)
+    const origX = this.margin.left + (document.getElementById(this.mainEl).clientWidth / 2)
     const origY = this.margin.top
     const parsedTransform = this.parseTransform(this.g.attr('transform'))
     this.zoom.translateBy(this.svg, origX - parsedTransform.translate[0], origY - parsedTransform.translate[1])
@@ -317,8 +331,8 @@ class GenMapper {
 
     // change CSS for printing
     d3.select('#left-menu').style('display', 'none')
-    d3.select('#main').style('float', 'left')
-    d3.selectAll('#main-svg').style('background', 'white')
+    d3.select('#'+this.mainEl).style('float', 'left')
+    d3.selectAll('#'+this.mainsvgEl).style('background', 'white')
 
     window.print()
 
@@ -327,8 +341,8 @@ class GenMapper {
       .attr('height', origHeight)
     this.g.attr('transform', origTransform)
     d3.select('#left-menu').style('display', null)
-    d3.select('#main').style('float', null)
-    d3.selectAll('#main-svg').style('background', null)
+    d3.select('#'+this.mainEl).style('float', null)
+    d3.selectAll('#'+this.mainsvgEl).style('background', null)
   }
 
   redraw (template) {
@@ -652,6 +666,10 @@ class GenMapper {
   importFile () {
     this.importFileFromInput('file-input', (filedata, filename) => {
       const parsedCsv = this.parseAndValidateCsv(filedata, filename)
+      console.log(parsedCsv);
+      this.sendNodesToDb(parsedCsv)
+      console.log('parsedCsv dir');
+      console.dir(parsedCsv);
       if (parsedCsv === null) { return }
       this.data = parsedCsv
       const regex = /(.+?)(\.[^.]*$|$)/
@@ -880,6 +898,20 @@ class GenMapper {
     })
     this.editParentElement = document.getElementById('edit-parent')
   }
+  
+  
+  sendNodesToDb (nodes) {
+	var $ = window.jQuery;
+	
+	$.post( GenMapperBase.ajaxurl , {
+		'action' : 'genmapper_nodes2db',
+		///'nodes': JSON.stringify( nodes )
+		'nodes': ( nodes )
+	}).done(function() { console.log('DONE')});
+	
+		  
+  }
+  
 }
 
 window.genmapper = new GenMapper()

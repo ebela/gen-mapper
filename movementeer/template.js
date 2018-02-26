@@ -2,6 +2,9 @@ const boxHeight = 80
 const textHeight = 14
 const textMargin = 6
 
+const imageHrefPrefix = '/wp-content/plugins/gen-mapper/movementeer/'
+const imageXlinkHrefPrefix = '/wp-content/plugins/gen-mapper/movementeer/'
+
 const template = {
   'name': 'MOVEMENTeer 0.4',
   'translations': {
@@ -201,7 +204,7 @@ const template = {
         'y': -2.5 * textHeight,
         'width': boxHeight / 4,
         'height': boxHeight / 4,
-        'href': 'icons/attenders.png'
+        'href': imageHrefPrefix + 'icons/attenders.png'
       }
     },
     'believers-image': {
@@ -211,7 +214,7 @@ const template = {
         'y': -2.5 * textHeight,
         'width': boxHeight / 4,
         'height': boxHeight / 4,
-        'href': 'icons/believers.png'
+        'href': imageHrefPrefix + 'icons/believers.png'
       }
     },
     'baptized-image': {
@@ -221,7 +224,7 @@ const template = {
         'y': -2.5 * textHeight,
         'width': boxHeight / 4,
         'height': boxHeight / 4,
-        'href': 'icons/element-baptism.png'
+        'href': imageHrefPrefix + 'icons/element-baptism.png'
       }
     },
     'church-box': {
@@ -370,7 +373,7 @@ const template = {
           'y': boxHeight * 0.1,
           'width': boxHeight / 4,
           'height': boxHeight / 4,
-          'xlink:href': 'icons/element-word.png'
+          'xlink:href': imageXlinkHrefPrefix + 'icons/element-word.png'
         }
       }
     },
@@ -385,7 +388,7 @@ const template = {
           'y': boxHeight * 0.1,
           'width': boxHeight / 4,
           'height': boxHeight / 4,
-          'xlink:href': 'icons/element-prayer.png'
+          'xlink:href': imageXlinkHrefPrefix + 'icons/element-prayer.png'
         }
       }
     },
@@ -400,7 +403,7 @@ const template = {
           'y': boxHeight * 0.375,
           'width': boxHeight / 4,
           'height': boxHeight / 4,
-          'xlink:href': 'icons/element-love.png'
+          'xlink:href': imageXlinkHrefPrefix + 'icons/element-love.png'
         }
       }
     },
@@ -415,7 +418,7 @@ const template = {
           'y': boxHeight * 0.65,
           'width': boxHeight / 4,
           'height': boxHeight / 4,
-          'xlink:href': 'icons/element-worship.png'
+          'xlink:href': imageXlinkHrefPrefix + 'icons/element-worship.png'
         }
       }
     },
@@ -430,7 +433,7 @@ const template = {
           'y': boxHeight * 0.65,
           'width': boxHeight / 4,
           'height': boxHeight / 4,
-          'xlink:href': 'icons/element-make-disciples.png'
+          'xlink:href': imageXlinkHrefPrefix + 'icons/element-make-disciples.png'
         }
       }
     },
@@ -445,7 +448,7 @@ const template = {
           'y': boxHeight * 0.65,
           'width': boxHeight / 4,
           'height': boxHeight / 4,
-          'xlink:href': 'icons/element-leaders.png'
+          'xlink:href': imageXlinkHrefPrefix + 'icons/element-leaders.png'
         }
       }
     },
@@ -460,7 +463,7 @@ const template = {
           'y': boxHeight * 0.375,
           'width': boxHeight / 4,
           'height': boxHeight / 4,
-          'xlink:href': 'icons/element-give.png'
+          'xlink:href': imageXlinkHrefPrefix + 'icons/element-give.png'
         }
       }
     },
@@ -475,7 +478,7 @@ const template = {
           'y': boxHeight * 0.375,
           'width': boxHeight / 4,
           'height': boxHeight / 4,
-          'xlink:href': 'icons/element-lords-supper.png'
+          'xlink:href': imageXlinkHrefPrefix + 'icons/element-lords-supper.png'
         }
       }
     },
@@ -490,7 +493,7 @@ const template = {
           'y': boxHeight * 0.1,
           'width': boxHeight / 4,
           'height': boxHeight / 4,
-          'xlink:href': 'icons/element-baptism.png'
+          'xlink:href': imageXlinkHrefPrefix + 'icons/element-baptism.png'
         }
       }
     },
