@@ -1,4 +1,6 @@
 window.console.log("genmapper.js first line");
+window.console.log("GenMapperBase", GenMapperBase);
+ 
 //alert('sasa');
 class GenMapper {
   // GenMapper

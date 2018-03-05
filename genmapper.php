@@ -25,10 +25,8 @@ function genmapper_init()
 	wp_register_style(  'genmapper_base_css', GENMAPPER_URL . 			"style-base.css" );
 
 	wp_register_script( 'genmapper_main_script', GENMAPPER_URL . 	"genmapper.js" , array('d3','i18next', 'loadsh','genmapper_translations','FileSaver','xlsx', 'genmapper_template_js','jquery'));
-	wp_localize_script( 'genmapper_main_script', 'GenMapperBase', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
-
 	wp_register_style(  'genmapper_template_css', GENMAPPER_URL . 			GENMAPPER_THEME."/style.css" );
-	wp_register_script( 'genmapper_template_js', GENMAPPER_URL . 	GENMAPPER_THEME."/template.js" , array('d3','i18next', 'loadsh','FileSaver','xlsx'));
+	wp_register_script( 'genmapper_template_js', GENMAPPER_URL . 	GENMAPPER_THEME."/template.js" , array('d3','i18next', 'loadsh','FileSaver','xlsx'),1);
 	
 	wp_register_script( 'd3', GENMAPPER_URL . "d3.min.js" );
 	wp_register_script( 'i18next', GENMAPPER_URL . "i18next.min.js" , array('i18next-languagedetector'));
@@ -37,6 +35,10 @@ function genmapper_init()
 	wp_register_script( 'genmapper_translations', GENMAPPER_URL . "translations.js" );
 	wp_register_script( 'FileSaver', GENMAPPER_URL . "FileSaver.min.js" );
 	wp_register_script( 'xlsx', GENMAPPER_URL . "xlsx.core.min.js" );
+
+	wp_localize_script( 'genmapper_template_js', 'GenMapperBase', array( 'ajaxurl' => admin_url( 'admin-ajax.php'), 'baseurl' => GENMAPPER_URL, 'themeurl' => GENMAPPER_URL.''.GENMAPPER_THEME.'/'  ) );
+
+
 /*
 	css
 	
@@ -131,8 +133,7 @@ function genmapper_sc($atts, $content)
     $content = '';
     
     //$content.= '<h1>GEN MAPPER</h1>';
-    $content.='<aside id="left-menu">
-  </aside>
+    $content.='<aside id="left-menu"></aside>
 
   <section id="intro">
     <div id="intro-content"></div>

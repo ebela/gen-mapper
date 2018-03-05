@@ -2,8 +2,8 @@ const boxHeight = 80
 const textHeight = 14
 const textMargin = 6
 
-const imageHrefPrefix = '/wp-content/plugins/gen-mapper/movementeer/'
-const imageXlinkHrefPrefix = '/wp-content/plugins/gen-mapper/movementeer/'
+const imageHrefPrefix =  GenMapperBase.themeurl || '/wp-content/plugins/gen-mapper/movementeer/'
+const imageXlinkHrefPrefix = GenMapperBase.themeurl || '/wp-content/plugins/gen-mapper/movementeer/'
 
 const template = {
   'name': 'MOVEMENTeer 0.4',
