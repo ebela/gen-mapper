@@ -24,6 +24,8 @@ class GenMapper {
       this.language = 'en'
     }
     this.baseurl = GenMapperBase.baseurl || '/wp-content/plugins/gen-mapper' // '..' 
+    this.genmap = {id:0,name:'Untitled Genmap', country: 'HU' }		//id:0 jelzi, hogy nincs mentve
+
     this.mainEl = 'genmap-main'
     this.mainsvgEl = 'genmap-main-svg'
     this.alertEl = 'alert-message'
@@ -566,6 +568,8 @@ class GenMapper {
     })
     newNodeData['id'] = this.findNewId()
     newNodeData['parentId'] = d.data.id
+    console.log('addNode', d, newNodeData);
+    this.sendEvent({cmd:'addNode', newNodeData:newNodeData, genmap:this.genmap, rootnode:this.data[0]});
     this.data.push(newNodeData)
     this.redraw(template)
   }
@@ -608,6 +612,10 @@ class GenMapper {
         this.deleteAllDescendants(d)
         const nodeToDelete = _.filter(this.data, {id: d.data.id})
         if (nodeToDelete) {
+
+		console.log('removeNode', nodeToDelete[0]);
+        this.sendEvent({cmd:'removeNode', nodeToDelete:nodeToDelete[0]});
+
           this.data = _.without(this.data, nodeToDelete[0])
         }
       }
@@ -737,8 +745,15 @@ class GenMapper {
       const childrenIdsToDelete = _.map(_.filter(this.data, {parentId: currentId}),
         function (row) { return row.id })
       idsToDelete = idsToDelete.concat(childrenIdsToDelete)
+	  console.log('deleteAllDescendants', idsToDelete);
+///	  this.sendEvent({cmd:'removeNode', nodeToDelete:nodeToDelete[0]});
+
       const nodeToDelete = _.filter(this.data, {id: currentId})
-      if (nodeToDelete) { this.data = _.without(this.data, nodeToDelete[0]) }
+      if (nodeToDelete) { 
+		  console.log('deleteAllDescendants', idsToDelete, nodeToDelete[0]);
+	      
+	      this.data = _.without(this.data, nodeToDelete[0]);
+	    }
     }
   }
 
@@ -808,6 +823,7 @@ class GenMapper {
   }
 
   fileToCsvString (filedata, filename) {
+	  console.log('fileToCsvString ', filedata, filename);
     const regex = /(?:\.([^.]+))?$/
     const extension = regex.exec(filename)[1].toLowerCase()
     let csvString
@@ -910,8 +926,71 @@ class GenMapper {
 		///'nodes': JSON.stringify( nodes )
 		'nodes': ( nodes )
 	}).done(function() { console.log('DONE')});
+  }
+  
+  sendEvent(data) {
+	var $ = window.jQuery;
 	
-		  
+	$.post( GenMapperBase.ajaxurl , {
+		'action' : 'genmapper_send_event',
+		///'nodes': JSON.stringify( nodes )
+		'data': ( data )
+	}).done(function() { console.log('DONE')});
+	  
+  }
+  
+  importAjax (genmap_id) {
+	var $ = window.jQuery;
+	var that=this;
+
+		
+	$.getJSON( GenMapperBase.ajaxurl , {
+		'action' : 'genmapper_import_from_db',
+		'genmap_id': genmap_id
+	}).done(function(data,status,jqxhr) { 
+		console.log('IMPORT DONE', data)
+		let filedata = data.csv;
+		let filename = 'imported.csv';
+//copypesztkod eleje
+	      const parsedCsv = that.parseAndValidateCsv(filedata, filename)
+	      console.dir(parsedCsv);
+	      if (parsedCsv === null) { return }
+	      that.data = parsedCsv
+	      const regex = /(.+?)(\.[^.]*$|$)/
+	      const filenameNoExtension = regex.exec(filename)[1]
+	      that.projectName = filenameNoExtension
+	      d3.select('#project-name')
+	        .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + that.projectName)
+	      that.redraw(template)
+//copypesztkod vege
+		
+		
+		
+	});
+/*     
+     
+     (filedata, filename) => {
+      const parsedCsv = this.parseAndValidateCsv(filedata, filename)
+      console.log(parsedCsv);
+      this.sendNodesToDb(parsedCsv)
+      console.log('parsedCsv dir');
+      console.dir(parsedCsv);
+      if (parsedCsv === null) { return }
+      this.data = parsedCsv
+      const regex = /(.+?)(\.[^.]*$|$)/
+      const filenameNoExtension = regex.exec(filename)[1]
+      this.projectName = filenameNoExtension
+      d3.select('#project-name')
+        .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.projectName)
+      this.redraw(template)
+    })
+    */
+  }
+  selectGenmapOnChange(t) {
+	var $ = window.jQuery;
+	let genmap_id = $(t).val();
+	this.importAjax(genmap_id);
+	  
   }
   
 }

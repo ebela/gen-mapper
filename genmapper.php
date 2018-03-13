@@ -19,12 +19,30 @@ define( 'GENMAPPER_DIR',           plugin_dir_path( __FILE__ ) );
 define('GENMAPPER_THEME','movementeer');
 
 
+
+
+//function genmapper_set_db_tables_name()
+//{
+	global $wpdb;
+	global $genmap_t_genmap;
+	$genmap_t_genmap = $wpdb->prefix . 'genmap';
+	global $genmap_t_genmap_nodes;
+	$genmap_t_genmap_nodes = $wpdb->prefix . 'genmap_nodes';
+	
+	global $genmap_fields_string;
+	$genmap_fields_string = 'id,parentId,name,leaderType,place,date,attenders,believers,baptized,church,elementWord,elementPrayer,elementLove,elementWorship,elementMakeDisciples,elementLeaders,elementGive,elementLordsSupper,elementBaptism,threeThirds,trainingUsed,trainingPhase,active,actionSteps,contact';
+	
+//}
+//add_action( 'init', 'genmapper_set_db_tables_name');
+
+
+
 function genmapper_init()
 {
 	
 	wp_register_style(  'genmapper_base_css', GENMAPPER_URL . 			"style-base.css" );
 
-	wp_register_script( 'genmapper_main_script', GENMAPPER_URL . 	"genmapper.js" , array('d3','i18next', 'loadsh','genmapper_translations','FileSaver','xlsx', 'genmapper_template_js','jquery'));
+	wp_register_script( 'genmapper_main_script', GENMAPPER_URL . 	"genmapper.js" , array('d3','i18next', 'loadsh','genmapper_translations','FileSaver','xlsx', 'genmapper_template_js','jquery'), time());
 	wp_register_style(  'genmapper_template_css', GENMAPPER_URL . 			GENMAPPER_THEME."/style.css" );
 	wp_register_script( 'genmapper_template_js', GENMAPPER_URL . 	GENMAPPER_THEME."/template.js" , array('d3','i18next', 'loadsh','FileSaver','xlsx'),1);
 	
@@ -68,7 +86,7 @@ function genmapper_create_db() {
 
 	global $wpdb;
 	$charset_collate = $wpdb->get_charset_collate();
-	$table_name = $wpdb->prefix . 'genmap';
+	$table_name = $wpdb->prefix . 'genmap_nodes';
 
 	$sql= "
 	/* CREATE TABLE */
@@ -103,10 +121,10 @@ CREATE TABLE IF NOT EXISTS $table_name(
   last_mod_user_id INT(11), 
   last_mod_date DATETIME,
 
-  upload_group_id INT(11), 
+  genmap_id INT(11) NOT NULL, 
   
   
-  UNIQUE KEY `genmap_uid` (`uid`)
+  UNIQUE KEY `genmap_nodes_uid` (`uid`)
 ) $charset_collate";
 
 	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
@@ -130,10 +148,16 @@ function genmapper_sc($atts, $content)
     //run actual function for rendering
     //$content = shortcode_person_slider($atts);
     
+    $cu = wp_get_current_user();
+    error_log(var_export($cu,1));
     $content = '';
     
     //$content.= '<h1>GEN MAPPER</h1>';
-    $content.='<aside id="left-menu"></aside>
+    $content.='
+    <section id="genmapper_info">
+    <div id="genmapper_info-content"><span class="username">'.$cu->display_name.'</span> | Genmaps: '.genmapper_genmap_select().'</div>
+    </section>
+  <aside id="left-menu"></aside>
 
   <section id="intro">
     <div id="intro-content"></div>
@@ -157,10 +181,52 @@ function genmapper_sc($atts, $content)
 add_shortcode("genmapper", 'genmapper_sc');
 
 
+function genmapper_genmap_select()
+{
+	global $wpdb;
+	global $genmap_t_genmap;
+	
+	$h='<select onchange="window.genmapper.selectGenmapOnChange(this);">'.PHP_EOL;
+	$h.='<option value="">Select genmap here to load</option>'.PHP_EOL;
+	$rows=$wpdb->get_results("SELECT * FROM $genmap_t_genmap ORDER BY id");
+	foreach ($rows as $r )
+	{
+		$h.='<option value="'.$r->id.'">'.$r->name.'</option>'.PHP_EOL;
+	}
+	$h.='</select>';
+	return $h;
+}
+
+function genmapper_create_genmap()
+{
+	global $wpdb;
+	global $genmap_t_genmap;
+	
+	$data = array();
+	$data['name'] = 'Genmap - '.date('Y.m.d. H:i:s');
+	$data['user_id']=get_current_user_id();
+	$data['last_mod_user_id']=get_current_user_id();
+	$data['last_mod_date']=date('Y.m.d H:i:s');
+	$wpdb->insert($genmap_t_genmap,$data);
+	return $wpdb->insert_id;
+}
+
+
 function ajax_genmapper_nodes2db()
 {
 //	echo('called '.__FUNCTION__);
-//	error_log(__FUNCTION__.' start');
+	error_log(__FUNCTION__.' start');
+	
+	
+	//uj genmap letrehozasa
+	
+	$genmap_id = genmapper_create_genmap();
+	if ( ! $genmap_id )
+	{
+		echo 'ERROR: cant create genmap';
+		wp_die();
+	}
+	
 //	error_log(var_export($_POST,1));
 //	error_log(var_export($_POST['nodes'],1));
 //	$nodes = isset($_POST['nodes']) ? json_decode($_POST['nodes'],1):null;
@@ -170,27 +236,118 @@ function ajax_genmapper_nodes2db()
 	if ( is_array($nodes) )
 	{
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'genmap';
+		global $genmap_t_genmap_nodes;
+		$table_name = $genmap_t_genmap_nodes;
 		
 		$upload_group_id = null;
 
 		foreach ($nodes as $i=>$n )
 		{
-			error_log('n'.$i.'  '.var_export($n,1));
 			$data = $n;
-			if ( $upload_group_id ) $data['upload_group_id'] = $upload_group_id;
+			$data['genmap_id']=$genmap_id;
 			$data['user_id']=get_current_user_id();
 			$data['last_mod_user_id']=get_current_user_id();
 			$data['last_mod_date']=date('Y.m.d H:i:s');
-			$wpdb->insert(
-				$table_name,
-				$data
-			);
-			if ( ! $upload_group_id ) $upload_group_id  = $wpdb->insert_id; 
+			$wpdb->insert($table_name, $data );
 		}
 	}
 	error_log(__FUNCTION__.' end');
+	wp_die();
+}
+function ajax_genmapper_send_event()
+{
+	global $wpdb;
 	
+	error_log(__FUNCTION__.' start');
+	$data = isset($_POST['data']) && is_array($_POST['data']) ? $_POST['data']:null;
+	$error = array();
+	if ( ! isset($data['cmd']) )
+	{
+		error_log('hibas hivas');
+		wp_die();
+	}
+	$cmd = $data['cmd'];
+	error_log(__FUNCTION__.' command: ['.$cmd.']  data: '.var_export($data,1). '  '.var_export($_POST,1));
+	
+	$answer = array();
+	
+	if ( $cmd == 'addNode' ) {
+		//parameterek megletenek ellenorzes
+		if ( ! isset($data['newNodeData']) )
+		{
+			$error[] = (__FUNCTION__.' cmd['.$cmd.'] hianyzo parameter');
+			
+		}
+		
+		if ( empty($error) )
+		{
+			$newNodeData = $data['newNodeData'];
+			
+		}
+		
+	}
+	else if ( $cmd == 'removeNode' ) {
+		
+	}
+	
+	
+
+	if ( count($error) )
+	{
+		error_log(__FUNCTION__.' ERROR: '.var_export($error,1));
+		
+	}
+
+	error_log(__FUNCTION__.' end');
+	echo json_encode($answer);
+	wp_die();
+}
+
+//db-bol betolti a get parameterben kapott id-ju genmapot es azt visszaadja
+function ajax_genmapper_import_from_db()
+{
+	global $wpdb;
+	global $genmap_fields_string;
+	global $genmap_t_genmap_nodes;
+	
+	$genmap_id = isset($_GET['genmap_id']) && is_numeric($_GET['genmap_id']) ? intval($_GET['genmap_id']):null;
+	
+	error_log(__FUNCTION__ .' genmapid'.$genmap_id);
+	
+	if ( ! $genmap_id )
+	{
+		echo 'ERROR:'.__LINE__;
+		wp_die();
+	}
+	$eol='';
+	$csv = $genmap_fields_string;
+	$csv.=PHP_EOL;
+
+
+	//header('Content-type: text/plain');
+	$rows=$wpdb->get_results("SELECT $genmap_fields_string FROM $genmap_t_genmap_nodes  WHERE genmap_id=$genmap_id ORDER BY uid, id");
+	foreach ($rows as $r )
+	{
+		$csv.=$eol;
+		$eol=PHP_EOL;
+		foreach ($r as $f )
+		{
+			$csv.=$f.',';
+		}
+	}
+	$answer['genmap']='';
+	$answer['csv']=$csv;
+	
+	echo json_encode($answer);
+	wp_die();
 }
 
 add_action( 'wp_ajax_genmapper_nodes2db', 'ajax_genmapper_nodes2db' );
+add_action( 'wp_ajax_nopriv_genmapper_nodes2db', 'ajax_genmapper_nodes2db' );
+
+add_action( 'wp_ajax_genmapper_send_event', 'ajax_genmapper_send_event' );
+add_action( 'wp_ajax_nopriv_genmapper_send_event', 'ajax_genmapper_send_event' );
+
+add_action( 'wp_ajax_genmapper_import_from_db', 'ajax_genmapper_import_from_db' );
+add_action( 'wp_ajax_nopriv_genmapper_import_from_db', 'ajax_genmapper_import_from_db' );
+
