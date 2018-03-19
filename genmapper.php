@@ -150,7 +150,7 @@ function genmapper_sc($atts, $content)
 	global $genmapper_displayed;
 	if ( $genmapper_displayed ) 
 	{
-		return "Genmapper already displayed";
+		error_log("Genmapper already displayed");
 	}
 	genmapper_register_shortcode_requirements();
     //run actual function for rendering
@@ -163,7 +163,7 @@ function genmapper_sc($atts, $content)
     //$content.= '<h1>GEN MAPPER</h1>';
     $content.='
     <section id="genmapper_info">
-    <div id="genmapper_info-content"><span class="username">'.$cu->display_name.'</span> | Genmaps: '.genmapper_genmap_select().'<a onclick="genmapper.editInfoOnClick()" id="genmapper_info-edit-btn" class="genericon genericon-edit">&nbsp;</a></div>
+    <div id="genmapper_info-content"><span class="username">'.$cu->display_name.'</span> | Genmaps: '.genmapper_genmap_select().'<a onclick="genmapper.editInfoOnClick()" id="genmapper_info-edit-btn" class="genericon genericon-edit">Edit</a></div>
     <div id="genmapper_info-editor" style="display:none">';
     $content.='<form onsubmit="genmapper.saveInfoOnClick(); return false;">';
     $content.='<input type="hidden" name="id">';
@@ -225,7 +225,7 @@ function genmapper_genmap_select()
 	return $h;
 }
 
-function genmapper_country_select($selected, $echo = false)
+function genmapper_country_select($selected=null, $echo = false)
 {
 	$countries=array(
 		array('name'=>'', 'code'=>''),
@@ -490,7 +490,7 @@ function ajax_genmapper_import_from_db()
 	
 	$genmap_id = isset($_GET['genmap_id']) && is_numeric($_GET['genmap_id']) ? intval($_GET['genmap_id']):null;
 	
-	error_log(__FUNCTION__ .' genmapid'.$genmap_id);
+	error_log(__FUNCTION__ .' genmapid:'.$genmap_id);
 	
 	if ( ! $genmap_id )
 	{
