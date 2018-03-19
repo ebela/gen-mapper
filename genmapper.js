@@ -24,7 +24,7 @@ class GenMapper {
       this.language = 'en'
     }
     this.baseurl = GenMapperBase.baseurl || '/wp-content/plugins/gen-mapper' // '..' 
-    this.genmap = {id:0,name:'Untitled Genmap', country: 'HU' }		//id:0 jelzi, hogy nincs mentve
+    this.genmap = {id:0,name:'Untitled Genmap', country_code: 'us' }		//id:0 jelzi, hogy nincs mentve
 
     this.mainEl = 'genmap-main'
     this.mainsvgEl = 'genmap-main-svg'
@@ -71,7 +71,7 @@ class GenMapper {
     this.redraw(template)
 
     this.alertElement = document.getElementById('alert-message')
-    this.editGroupElement = document.getElementById('edit-group')
+    this.editGroupElement = document.getElementById(this.editEl)
 
     this.setKeyboardShorcuts()
 
@@ -95,7 +95,7 @@ class GenMapper {
       } else if (e.keyCode === 13) {
         // hitting enter is like submitting changes in the edit window
         if (this.editGroupElement.style.display !== 'none') {
-          document.getElementById('edit-submit').click()
+          document.getElementById(this.editsubmitEl).click()
         }
       }
     })
@@ -103,14 +103,14 @@ class GenMapper {
 
   setSvgHeight () {
     const windowHeight = document.documentElement.clientHeight
-    const leftMenuHeight = document.getElementById('left-menu').clientHeight
+    const leftMenuHeight = document.getElementById(this.leftmenuEl).clientHeight
     const height = Math.max(windowHeight, leftMenuHeight + 10)
     d3.select('#'+this.mainsvgEl)
       .attr('height', height)
   }
 
   loadHTMLContent () {
-    document.getElementById('left-menu').innerHTML = '<div id="template-logo">' +
+    document.getElementById(this.leftmenuEl).innerHTML = '<div id="template-logo">' +
     i18next.t('template.logo', '') +
     '<button onclick="genmapper.introSwitchVisibility()" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.helpAbout') + '"><img src="' + this.baseurl + '/icons/266-question.svg"></button>' +
     '<div class="dropdown" id="lang-selector">' +
@@ -135,7 +135,7 @@ class GenMapper {
     '<button onclick="genmapper.printMap(\'vertical\');" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.btnPrintVertical') + '"><img src="' + this.baseurl + '/icons/print-vertical.svg"></button>' +
     '<button onclick="genmapper.printMap(\'horizontal\');" class="hint--rounded hint--right" aria-label="' + i18next.t('menu.btnPrintHorizontal') + '"><img src="' + this.baseurl + '/icons/print-horizontal.svg"></button>'
 
-    document.getElementById('edit-group').innerHTML = '<div id="edit-group-content">' +
+    document.getElementById(this.editEl).innerHTML = '<div id="edit-group-content">' +
     '  <h1>' + i18next.t('editGroup.editGroup') + '</h1>' +
     '  <form>' +
     '    <table>' +
@@ -146,7 +146,7 @@ class GenMapper {
     '    </table>' +
     '  </form>' +
     '  <div id="edit-buttons">' +
-    '    <button id="edit-submit">' + i18next.t('editGroup.btnSubmit') + '</button>' +
+    '    <button id="'+this.editsubmitEl+'">' + i18next.t('editGroup.btnSubmit') + '</button>' +
     '    <button id="edit-cancel">' + i18next.t('editGroup.btnCancel') + '</button>' +
     '    <button id="edit-delete">' + i18next.t('editGroup.btnDelete') + '</button>' +
     '    <button onclick="genmapper.onLoad(\'file-input-subtree\')">' + i18next.t('editGroup.btnImportSubtree') + '</button>' +
@@ -154,7 +154,7 @@ class GenMapper {
     '  </div>' +
     '</div>'
 
-    document.getElementById('intro-content').innerHTML = '<h2>' +
+    document.getElementById(this.introcontentEl).innerHTML = '<h2>' +
     i18next.t('help.genmapperHelp') + '</h2>' +
     '<p>' + i18next.t('help.introContent') + '</p>' +
     i18next.t('template.helpLegend') +
@@ -262,7 +262,7 @@ class GenMapper {
     this.editParentElement.innerHTML = d.parent ? d.parent.data.name : 'N/A'
     const groupData = d.data
     const group = d
-    d3.select('#edit-submit').on('click', () => { this.editGroup(groupData) })
+    d3.select('#'+this.editsubmitEl).on('click', () => { this.editGroup(groupData) })
     d3.select('#edit-cancel').on('click', () => { this.editGroupElement.style.display = 'none' })
     d3.select('#edit-delete').on('click', () => { this.removeNode(group) })
     d3.select('#file-input-subtree').on('change', () => { this.importFileSubtree(group) })
@@ -282,7 +282,11 @@ class GenMapper {
         groupData[field.header] = this.editFieldElements[field.header].checked
       }
     })
-
+    
+    
+    console.log('editGroup', groupData, this.genmap );
+    this.sendEvent({cmd:'editNode', nodeData:groupData, genmap:this.genmap });
+    
     this.editGroupElement.style.display = 'none'
     this.redraw(template)
   }
@@ -334,7 +338,7 @@ class GenMapper {
     }
 
     // change CSS for printing
-    d3.select('#left-menu').style('display', 'none')
+    d3.select('#'+this.leftmenuEl).style('display', 'none')
     d3.select('#'+this.mainEl).style('float', 'left')
     d3.selectAll('#'+this.mainsvgEl).style('background', 'white')
 
@@ -344,7 +348,7 @@ class GenMapper {
     this.svg.attr('width', origWidth)
       .attr('height', origHeight)
     this.g.attr('transform', origTransform)
-    d3.select('#left-menu').style('display', null)
+    d3.select('#'+this.leftmenuEl).style('display', null)
     d3.select('#'+this.mainEl).style('float', null)
     d3.selectAll('#'+this.mainsvgEl).style('background', null)
   }
@@ -569,7 +573,7 @@ class GenMapper {
     newNodeData['id'] = this.findNewId()
     newNodeData['parentId'] = d.data.id
     console.log('addNode', d, newNodeData);
-    this.sendEvent({cmd:'addNode', newNodeData:newNodeData, genmap:this.genmap, rootnode:this.data[0]});
+    this.sendEvent({cmd:'addNode', nodeData:newNodeData, genmap:this.genmap});
     this.data.push(newNodeData)
     this.redraw(template)
   }
@@ -614,13 +618,13 @@ class GenMapper {
         if (nodeToDelete) {
 
 		console.log('removeNode', nodeToDelete[0]);
-        this.sendEvent({cmd:'removeNode', nodeToDelete:nodeToDelete[0]});
+        this.sendEvent({cmd:'removeNode', nodeData:nodeToDelete[0], genmap:this.genmap});
 
           this.data = _.without(this.data, nodeToDelete[0])
         }
       }
     }
-    document.getElementById('edit-group').style.display = 'none'
+    document.getElementById(this.editEl).style.display = 'none'
     this.redraw(template)
   }
 
@@ -675,12 +679,13 @@ class GenMapper {
 
   importFile () {
     this.importFileFromInput('file-input', (filedata, filename) => {
+	console.log('filename', filename, 'filedata', filedata);
       const parsedCsv = this.parseAndValidateCsv(filedata, filename)
-      console.log(parsedCsv);
-      this.sendNodesToDb(parsedCsv)
-      console.log('parsedCsv dir');
-      console.dir(parsedCsv);
+      //console.log(parsedCsv);
+      //console.log('parsedCsv dir');
+      //console.dir(parsedCsv);
       if (parsedCsv === null) { return }
+      this.sendNodesToDb(parsedCsv)
       this.data = parsedCsv
       const regex = /(.+?)(\.[^.]*$|$)/
       const filenameNoExtension = regex.exec(filename)[1]
@@ -746,11 +751,11 @@ class GenMapper {
         function (row) { return row.id })
       idsToDelete = idsToDelete.concat(childrenIdsToDelete)
 	  console.log('deleteAllDescendants', idsToDelete);
-///	  this.sendEvent({cmd:'removeNode', nodeToDelete:nodeToDelete[0]});
 
       const nodeToDelete = _.filter(this.data, {id: currentId})
       if (nodeToDelete) { 
 		  console.log('deleteAllDescendants', idsToDelete, nodeToDelete[0]);
+          this.sendEvent({cmd:'removeNode', nodeData:nodeToDelete[0], genmap:this.genmap});
 	      
 	      this.data = _.without(this.data, nodeToDelete[0]);
 	    }
@@ -935,45 +940,27 @@ class GenMapper {
 		'action' : 'genmapper_send_event',
 		///'nodes': JSON.stringify( nodes )
 		'data': ( data )
-	}).done(function() { console.log('DONE')});
+	}).done(function() { console.log('DATA SENT')});
 	  
   }
   
-  importAjax (genmap_id) {
+  
+  importAjaxDone(data) {
 	var $ = window.jQuery;
-	var that=this;
 
-		
-	$.getJSON( GenMapperBase.ajaxurl , {
-		'action' : 'genmapper_import_from_db',
-		'genmap_id': genmap_id
-	}).done(function(data,status,jqxhr) { 
-		console.log('IMPORT DONE', data)
-		let filedata = data.csv;
-		let filename = 'imported.csv';
-//copypesztkod eleje
-	      const parsedCsv = that.parseAndValidateCsv(filedata, filename)
-	      console.dir(parsedCsv);
-	      if (parsedCsv === null) { return }
-	      that.data = parsedCsv
-	      const regex = /(.+?)(\.[^.]*$|$)/
-	      const filenameNoExtension = regex.exec(filename)[1]
-	      that.projectName = filenameNoExtension
-	      d3.select('#project-name')
-	        .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + that.projectName)
-	      that.redraw(template)
-//copypesztkod vege
-		
-		
-		
-	});
-/*     
-     
-     (filedata, filename) => {
+	//update genmapper info edit
+	$('#genmapper_info-editor input[name=id]').val(data.genmap.id)
+	$('#genmapper_info-editor input[name=name]').val(data.genmap.name)
+	$('#genmapper_info-editor select[name=country_code]').val(data.genmap.country_code)
+	this.genmap = data.genmap;
+	
+	//nodes 
+	let filedata = data.csv;
+	let filename = 'imported.csv';
+	//copypesztkod eleje
+	console.log('filename', filename, 'filedata', filedata);
+	console.log('data', data);
       const parsedCsv = this.parseAndValidateCsv(filedata, filename)
-      console.log(parsedCsv);
-      this.sendNodesToDb(parsedCsv)
-      console.log('parsedCsv dir');
       console.dir(parsedCsv);
       if (parsedCsv === null) { return }
       this.data = parsedCsv
@@ -983,15 +970,54 @@ class GenMapper {
       d3.select('#project-name')
         .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.projectName)
       this.redraw(template)
-    })
-    */
+    //copypesztkod vege
+	  
   }
+
+  
+  importAjax (genmap_id) {
+	var $ = window.jQuery;
+	var that=this;
+
+	$.getJSON( GenMapperBase.ajaxurl , {
+		'action' : 'genmapper_import_from_db',
+		'genmap_id': genmap_id
+	}).done(function(data,status,jqxhr) {
+		console.log('IMPORT DONE', data);
+		that.importAjaxDone(data); 
+	});
+  }
+
+  
   selectGenmapOnChange(t) {
 	var $ = window.jQuery;
 	let genmap_id = $(t).val();
 	this.importAjax(genmap_id);
+  }
+  
+  
+  editInfoOnClick() {
+	var $ = window.jQuery;
+	$('#genmapper_info-editor').show();
 	  
   }
+  
+  saveInfoOnClick() {
+	var $ = window.jQuery;
+	
+	var that=this;
+
+	$.post( GenMapperBase.ajaxurl , {
+		'action' : 'genmapper_update_genmap_info',
+		'genmap_info': $('#genmapper_info-editor form').serialize()
+	}).done(function(data,status,jqxhr) {
+		console.log('GENMAP INFO UPDATE DONE', data);
+		///that.importAjaxDone(data); 
+	});
+	$('#genmapper_info-editor').hide();
+	  
+  }
+  
   
 }
 

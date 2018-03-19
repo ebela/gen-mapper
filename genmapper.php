@@ -44,7 +44,7 @@ function genmapper_init()
 
 	wp_register_script( 'genmapper_main_script', GENMAPPER_URL . 	"genmapper.js" , array('d3','i18next', 'loadsh','genmapper_translations','FileSaver','xlsx', 'genmapper_template_js','jquery'), time());
 	wp_register_style(  'genmapper_template_css', GENMAPPER_URL . 			GENMAPPER_THEME."/style.css" );
-	wp_register_script( 'genmapper_template_js', GENMAPPER_URL . 	GENMAPPER_THEME."/template.js" , array('d3','i18next', 'loadsh','FileSaver','xlsx'),1);
+	wp_register_script( 'genmapper_template_js', GENMAPPER_URL . 	GENMAPPER_THEME."/template.js" , array('d3','i18next', 'loadsh','FileSaver','xlsx'), time());
 	
 	wp_register_script( 'd3', GENMAPPER_URL . "d3.min.js" );
 	wp_register_script( 'i18next', GENMAPPER_URL . "i18next.min.js" , array('i18next-languagedetector'));
@@ -142,20 +142,47 @@ function genmapper_register_shortcode_requirements()
 }
 
 
+global $genmapper_displayed;
+$genmapper_displayed = false;
+
 function genmapper_sc($atts, $content)
 {
+	global $genmapper_displayed;
+	if ( $genmapper_displayed ) 
+	{
+		return "Genmapper already displayed";
+	}
 	genmapper_register_shortcode_requirements();
     //run actual function for rendering
     //$content = shortcode_person_slider($atts);
     
     $cu = wp_get_current_user();
-    error_log(var_export($cu,1));
+    //error_log(var_export($cu,1));
     $content = '';
     
     //$content.= '<h1>GEN MAPPER</h1>';
     $content.='
     <section id="genmapper_info">
-    <div id="genmapper_info-content"><span class="username">'.$cu->display_name.'</span> | Genmaps: '.genmapper_genmap_select().'</div>
+    <div id="genmapper_info-content"><span class="username">'.$cu->display_name.'</span> | Genmaps: '.genmapper_genmap_select().'<a onclick="genmapper.editInfoOnClick()" id="genmapper_info-edit-btn" class="genericon genericon-edit">&nbsp;</a></div>
+    <div id="genmapper_info-editor" style="display:none">';
+    $content.='<form onsubmit="genmapper.saveInfoOnClick(); return false;">';
+    $content.='<input type="hidden" name="id">';
+    $content.='<ul style="list-style-type:none">';
+    $content.='<li>';
+    $content.='<label for name="name">Name</label>';
+    $content.='<input type="text" name="name">';
+    $content.='</li>';
+    $content.='<li>';
+    $content.='<label for name="country_code">Country</label>';
+    $content.=genmapper_country_select();
+    $content.='</li>';
+    $content.='<li>';
+    $content.='<input type="button" value="save" onclick="genmapper.saveInfoOnClick();" >';
+    $content.='</li>';
+    $content.='</ul>';
+    
+    $content.='</form></div>
+    
     </section>
   <aside id="left-menu"></aside>
 
@@ -174,6 +201,7 @@ function genmapper_sc($atts, $content)
   </section>
 ';
     $content.= PHP_EOL;
+	$genmapper_displayed = true;
     
     return $content;
 }
@@ -187,7 +215,7 @@ function genmapper_genmap_select()
 	global $genmap_t_genmap;
 	
 	$h='<select onchange="window.genmapper.selectGenmapOnChange(this);">'.PHP_EOL;
-	$h.='<option value="">Select genmap here to load</option>'.PHP_EOL;
+	$h.='<option value="">Select genmap here to load from database</option>'.PHP_EOL;
 	$rows=$wpdb->get_results("SELECT * FROM $genmap_t_genmap ORDER BY id");
 	foreach ($rows as $r )
 	{
@@ -196,6 +224,41 @@ function genmapper_genmap_select()
 	$h.='</select>';
 	return $h;
 }
+
+function genmapper_country_select($selected, $echo = false)
+{
+	$countries=array(
+		array('name'=>'', 'code'=>''),
+	    array('name'=>'Albania', 'code'=>'ALB'),
+        array('name'=>'Belarus', 'code'=>'BLR'),
+        array('name'=>'Bosnia', 'code'=>'BSN'),
+        array('name'=>'Bulgaria', 'code'=>'BUL'),
+        array('name'=>'Croatia', 'code'=>'CRO'),
+        array('name'=>'Czech Rep', 'code'=>'CZK'),
+        array('name'=>'Georgia', 'code'=>'GEO'),
+        array('name'=>'Hungary', 'code'=>'HUN'),
+        array('name'=>'Kosovo', 'code'=>'KOS'),
+        array('name'=>'Macedonia', 'code'=>'MAC'),
+        array('name'=>'Moldova', 'code'=>'MOL'),
+        array('name'=>'Montenegro', 'code'=>'MON'),
+        array('name'=>'Poland', 'code'=>'POL'),
+        array('name'=>'Romania', 'code'=>'ROM'),
+        array('name'=>'Russia', 'code'=>'RUS'),
+        array('name'=>'Serbia', 'code'=>'SRB'),
+        array('name'=>'Slovakia', 'code'=>'SLO'),
+        array('name'=>'Slovenia', 'code'=>'SLV'),
+        array('name'=>'Ukraine', 'code'=>'UKR'),
+        array('name'=>'Israel', 'code'=>'ISR'),
+    );
+    $content='<select name="country_code">';
+    foreach ($countries as $c) {
+	    $_selected = $c['code'] == $selected ? ' selected':'';
+	    $content.='<option'.$_selected .' value="'.$c['code'].'">'.$c['name'].'</option>';
+	}
+    $content.='</select>';
+    if ( $echo ) echo $content;
+    return $content;
+} 
 
 function genmapper_create_genmap()
 {
@@ -207,10 +270,129 @@ function genmapper_create_genmap()
 	$data['user_id']=get_current_user_id();
 	$data['last_mod_user_id']=get_current_user_id();
 	$data['last_mod_date']=date('Y.m.d H:i:s');
+	$data['create_date']=date('Y.m.d H:i:s');
 	$wpdb->insert($genmap_t_genmap,$data);
 	return $wpdb->insert_id;
 }
 
+function genmapper_is_node_exists($nodeData, $genmap_id=null)
+{
+	global $wpdb;
+	global $genmap_t_genmap_nodes;
+	
+	
+	if ( $genmap_id === null)
+	{
+		$genmap_id = $nodeData['genmap_id'];
+	}
+
+
+	$whereIdAndParentId = "`id` = ".$nodeData['id']." AND parentId ". ( $nodeData['id'] == 0 ? ' IS NULL ' : ' = '.$nodeData['parentId'] );
+	$node_exists = $wpdb->get_var( "SELECT COUNT(*) FROM $genmap_t_genmap_nodes  WHERE $whereIdAndParentId AND genmap_id=$genmap_id AND `deleted` IS NULL" );
+	//error_log(__FUNCTION__.' node exists result: '.var_export($node_exists,1).'  return value: '.var_export($node_exists == 1,1));
+	error_log(__FUNCTION__.' '.$wpdb->last_query);
+	return  $node_exists > 0;
+}
+
+function genmapper_add_node($nodeData, $genmap_id=null)
+{
+	global $wpdb;
+	global $genmap_t_genmap_nodes;
+
+
+	if ( ! isset($nodeData['genmap_id']) && intval($genmap_id) == 0 )
+	{
+		
+		error_log('genmap id is not set.');
+		return false;
+	}
+	
+	//hozzaadas elott ellenorizzuk hogy volt-e mar ilyen node, ha igen, akkor azt toroljuk
+	if (  genmapper_is_node_exists($nodeData, $genmap_id) )
+	{
+		genmapper_remove_node($nodeData, $genmap_id);
+	}
+
+	$nodeData = genmapper_fix_node_properties_type($nodeData);
+	$nodeData['user_id'] = get_current_user_id();
+	$nodeData['last_mod_user_id'] = get_current_user_id();
+	$nodeData['last_mod_date'] = date('Y.m.d H:i:s');
+	
+	if ( ! isset($nodeData['genmap_id']) ) {
+		$nodeData['genmap_id'] = $genmap_id;
+	}
+	
+	error_log(__FUNCTION__.' -- '. var_export($nodeData,1));
+
+/**
+			$data = $n;
+			$data['genmap_id']=$genmap_id;
+			$data['user_id']=get_current_user_id();
+			$data['last_mod_user_id']=get_current_user_id();
+			$data['last_mod_date']=date('Y.m.d H:i:s');
+			if ( $data['id'] == 0 ) $data['parentId'] = null;
+			if ( $data['date'] =='0000-00-00 00:00:00' ) $data['date'] = null;
+			
+			$wpdb->insert($table_name, $data );
+
+*/
+
+	$wpdb->insert($genmap_t_genmap_nodes, $nodeData );
+	error_log(__FUNCTION__.' '.$wpdb->last_query);
+	return $wpdb->insert_id;
+}
+
+
+/*
+	
+*/
+function genmapper_remove_node($nodeData, $genmap_id=null)
+{
+	global $wpdb;
+	global $genmap_t_genmap_nodes;
+	
+	
+	if ( $genmap_id === null)
+	{
+		$genmap_id = $nodeData['genmap_id'];
+	}
+	
+	if ( ! $genmap_id )
+	{
+		error_log('genmap id is not set.');
+		return false;
+	}
+	
+	if ( $nodeData['id'] == 0 ) $nodeData['parentId'] = null;
+
+	error_log('deleting node '.var_export($nodeData,1 ));  
+	$updated_rowscount = $wpdb->update( $genmap_t_genmap_nodes, array('deleted'=>current_time('mysql', 1)), array( 'genmap_id'=>$genmap_id, 'id' => $nodeData['id'], 'parentId' => $nodeData['parentId'],'deleted'=>null ) );  
+	error_log(__FUNCTION__.' '.$wpdb->last_query);
+	error_log('deleted row count: '.var_export($updated_rowscount ,1)) ;  
+	
+	return  $updated_rowscount;
+}
+
+
+/*
+	A paramterben kapott node tulajdonsagainak a tipusat 
+*/
+function genmapper_fix_node_properties_type($node)
+{
+	foreach ($node as &$e )
+	{
+		if ( is_string($e) )
+		{
+			if ( strtolower($e) == 'true' ) $e = 1;
+			if ( strtolower($e) == 'false' ) $e = 0;
+			$e=stripslashes($e);
+		}
+	}
+	if ( $node['id'] == 0 ) $node['parentId'] = null;
+	if ( $node['date'] == '0000-00-00 00:00:00' ) $node['date'] = null;
+	
+	return $node;
+}
 
 function ajax_genmapper_nodes2db()
 {
@@ -243,12 +425,7 @@ function ajax_genmapper_nodes2db()
 
 		foreach ($nodes as $i=>$n )
 		{
-			$data = $n;
-			$data['genmap_id']=$genmap_id;
-			$data['user_id']=get_current_user_id();
-			$data['last_mod_user_id']=get_current_user_id();
-			$data['last_mod_date']=date('Y.m.d H:i:s');
-			$wpdb->insert($table_name, $data );
+			genmapper_add_node($n, $genmap_id);
 		}
 	}
 	error_log(__FUNCTION__.' end');
@@ -266,28 +443,28 @@ function ajax_genmapper_send_event()
 		error_log('hibas hivas');
 		wp_die();
 	}
+
+	if ( ! isset($data['nodeData']) )
+	{
+		error_log (__FUNCTION__.' cmd['.$cmd.'] hianyzo parameter');
+		wp_die();
+		
+	}
+	
+	
 	$cmd = $data['cmd'];
-	error_log(__FUNCTION__.' command: ['.$cmd.']  data: '.var_export($data,1). '  '.var_export($_POST,1));
+	error_log(__FUNCTION__.' command: ['.$cmd.']  data: '.var_export($data,1));
 	
 	$answer = array();
 	
 	if ( $cmd == 'addNode' ) {
-		//parameterek megletenek ellenorzes
-		if ( ! isset($data['newNodeData']) )
-		{
-			$error[] = (__FUNCTION__.' cmd['.$cmd.'] hianyzo parameter');
-			
-		}
-		
-		if ( empty($error) )
-		{
-			$newNodeData = $data['newNodeData'];
-			
-		}
-		
+		$answer['new_node_id'] = genmapper_add_node($data['nodeData'],$data['genmap']['id']);
+	}
+	else if ( $cmd == 'editNode' ) {
+		$answer['edited_node_id'] = genmapper_add_node($data['nodeData'],$data['genmap']['id']);
 	}
 	else if ( $cmd == 'removeNode' ) {
-		
+		$answer['removed_node_count'] = genmapper_remove_node($data['nodeData'],$data['genmap']['id']);
 	}
 	
 	
@@ -309,6 +486,7 @@ function ajax_genmapper_import_from_db()
 	global $wpdb;
 	global $genmap_fields_string;
 	global $genmap_t_genmap_nodes;
+	global $genmap_t_genmap;
 	
 	$genmap_id = isset($_GET['genmap_id']) && is_numeric($_GET['genmap_id']) ? intval($_GET['genmap_id']):null;
 	
@@ -325,7 +503,7 @@ function ajax_genmapper_import_from_db()
 
 
 	//header('Content-type: text/plain');
-	$rows=$wpdb->get_results("SELECT $genmap_fields_string FROM $genmap_t_genmap_nodes  WHERE genmap_id=$genmap_id ORDER BY uid, id");
+	$rows=$wpdb->get_results("SELECT $genmap_fields_string FROM $genmap_t_genmap_nodes  WHERE genmap_id=$genmap_id AND `deleted` IS NULL ORDER BY id");
 	foreach ($rows as $r )
 	{
 		$csv.=$eol;
@@ -335,11 +513,37 @@ function ajax_genmapper_import_from_db()
 			$csv.=$f.',';
 		}
 	}
-	$answer['genmap']='';
+	$genmap_info=$wpdb->get_row("SELECT * FROM $genmap_t_genmap WHERE `id`=$genmap_id");
+	$answer['genmap']=$genmap_info;
 	$answer['csv']=$csv;
 	
 	echo json_encode($answer);
 	wp_die();
+}
+
+function ajax_genmapper_update_genmap_info()
+{
+	global $wpdb;
+	global $genmap_t_genmap;
+	
+	$genmap_info = array();
+	if ( isset($_POST['genmap_info']) ) 
+		parse_str($_POST['genmap_info'],$genmap_info);
+	
+	error_log(__FUNCTION__ .' posted genmap info ' .var_export($genmap_info,1));
+	
+	if ( ! is_array($genmap_info) )
+	{
+		echo 'ERROR: genmap info not found';
+		wp_die();
+	}
+	
+	error_log('updating '.  $genmap_t_genmap. var_export($genmap_info,1). var_export(array( 'id' => $genmap_info['id'],1 )) );  
+	$updated_rowscount = $wpdb->update( $genmap_t_genmap, $genmap_info, array( 'id' => $genmap_info['id'] ) );  
+	
+	echo 'successful updated genmap record '.$updated_rowscount;
+	wp_die();
+	
 }
 
 add_action( 'wp_ajax_genmapper_nodes2db', 'ajax_genmapper_nodes2db' );
@@ -350,4 +554,64 @@ add_action( 'wp_ajax_nopriv_genmapper_send_event', 'ajax_genmapper_send_event' )
 
 add_action( 'wp_ajax_genmapper_import_from_db', 'ajax_genmapper_import_from_db' );
 add_action( 'wp_ajax_nopriv_genmapper_import_from_db', 'ajax_genmapper_import_from_db' );
+
+add_action( 'wp_ajax_genmapper_update_genmap_info', 'ajax_genmapper_update_genmap_info' );
+add_action( 'wp_ajax_nopriv_genmapper_update_genmap_info', 'ajax_genmapper_update_genmap_info' );
+
+//////////////////////////////////////////////////////////////////////
+// user meta
+/////////////////////////////////////////////////////////////////////
+// Hook is used to save custom fields that have been added to the WordPress profile page (if current user) 
+
+add_action( 'personal_options_update', 'update_extra_profile_fields'  );
+
+// Hook is used to save custom fields that have been added to the WordPress profile page (if not current user) 
+add_action( 'edit_user_profile_update', 'update_extra_profile_fields' );
+
+function update_extra_profile_fields( $user_id ) {
+    if ( current_user_can( 'edit_user', $user_id ) )
+    {
+	    error_log(__FUNCTION__.' '. var_export($_POST,1));
+	    if ( isset($_POST['genmapper_single_user']) )
+	    	update_user_meta($user_id, 'genmapper_single_user',$_POST['genmapper_single_user']);
+	    if ( isset($_POST['country_code']) )
+	    	update_user_meta($user_id, 'genmapper_country_code',$_POST['country_code']);
+
+    }
+}
+
+// *********************************** USER ADATLAP A USER MODULBAN  ***********************
+// Hooks near the bottom of profile page (if current user) 
+add_action('show_user_profile', 'custom_user_profile_fields');
+
+// Hooks near the bottom of the profile page (if not current user) 
+add_action('edit_user_profile', 'custom_user_profile_fields');
+
+// @param WP_User $user
+function custom_user_profile_fields( $user ) {
+
+?>
+    <h3>Genmapper settings</h3>
+    <table class="form-table">
+        <tr>
+            <th>
+                <label for="genmapper_single_user"><?php _e( 'Single User' ); ?></label>
+            </th>
+            <td>
+				<input type="checkbox" name="genmapper_single_user" value="1" <?php checked( get_the_author_meta( 'genmapper_single_user', $user->ID ), 1 ); ?> />
+            </td>
+        </tr>
+        <tr>
+            <th>
+                <label for="country_code"><?php _e( 'Country' ); ?></label>
+            </th>
+            <td>
+				<?php genmapper_country_select( get_the_author_meta( 'genmapper_country_code', $user->ID ) , true); ?>
+            </td>
+        </tr>
+    </table>
+<?php
+	return;
+}
+
 
