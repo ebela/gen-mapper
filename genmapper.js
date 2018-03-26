@@ -154,6 +154,8 @@ class GenMapper {
     '  </div>' +
     '</div>'
 
+
+
     document.getElementById(this.introcontentEl).innerHTML = '<h2>' +
     i18next.t('help.genmapperHelp') + '</h2>' +
     '<p>' + i18next.t('help.introContent') + '</p>' +
@@ -899,6 +901,8 @@ class GenMapper {
     d3.select('#project-name')
       .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.projectName)
       .on('click', () => {
+	      this.editInfoOnClick()
+	      /*
         let userInput = window.prompt(i18next.t('messages.editProjectName'), this.projectName)
         if (userInput === null) { return }
         userInput = userInput.trim()
@@ -906,7 +910,7 @@ class GenMapper {
           this.projectName = userInput
           d3.select('#project-name')
             .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.projectName)
-        }
+        } */
       })
     this.editFieldElements = {}
     template.fields.forEach((field) => {
@@ -1010,8 +1014,12 @@ class GenMapper {
 	$.post( GenMapperBase.ajaxurl , {
 		'action' : 'genmapper_update_genmap_info',
 		'genmap_info': $('#genmapper_info-editor form').serialize()
-	}).done(function(data,status,jqxhr) {
+	}).done(function(_data,status,jqxhr) {
+		var data = $.parseJSON( _data);
 		console.log('GENMAP INFO UPDATE DONE', data);
+		if ( data.result == 1 ) {
+			$("#genmapper_info-content select option:selected").text($('#genmapper_info-editor form input[name=name]').val());
+		}
 		///that.importAjaxDone(data); 
 	});
 	$('#genmapper_info-editor').hide();

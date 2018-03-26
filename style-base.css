@@ -1,5 +1,59 @@
 /* Genmapper CSS */
+
+/* basic section reset*/
+/*
+section#genmapper_info *,
+section#intro *,
+section#alert-message *,
+section#edit-project *,
+section#edit-group *
+{
+	line-height: 1;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+		
+}
+section#genmapper_info table,
+section#intro table,
+section#alert-message table,
+section#edit-project table,
+section#edit-group table
+{
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+*/
+section#edit-group button 
+{
+	font: 15px sans-serif;
+	font-weight: normal;
+}
+
+section#edit-group table,
+section#edit-group table td
+{
+	border-collapse: collapse;
+	border-spacing: 2px;
+	font: 15px sans-serif !important;
+	padding: 2px !important;
+	border: 0px solid black;
+
+/*
+white-space: normal;
+word-break: normal;
+word-spacing: 0px;
+word-wrap: normal;
+*/	
+}
+
+
 /**** Basic elements ****/
+
+
 
 rect{
   fill:white;
@@ -120,7 +174,8 @@ aside p{
 }
 
 #alert-message-content {
-  max-width: 400px;
+  max-width: 400px; 
+/*  max-width: 40%; */
 }
 
 #edit-buttons {
@@ -129,7 +184,8 @@ aside p{
 }
 
 #edit-group-content {
-  max-width: 400px;
+  max-width: 400px; 
+/*  max-width: 40%; */
 }
 
 #edit-group-content table {
