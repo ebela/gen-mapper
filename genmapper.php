@@ -40,7 +40,8 @@ define('GENMAPPER_THEME','movementeer');
 function genmapper_init()
 {
 	
-	wp_register_style(  'genmapper_base_css', GENMAPPER_URL . "style-base.css", array(), time() );
+	wp_register_style(  'hint_css', GENMAPPER_URL . "hint.min.css" );
+	wp_register_style(  'genmapper_base_css', GENMAPPER_URL . "style-base.css", array('hint_css'), time() );
 
 	wp_register_script( 'genmapper_main_script', GENMAPPER_URL . 	"genmapper.js" , array('d3','i18next', 'loadsh','genmapper_translations','FileSaver','xlsx', 'genmapper_template_js','jquery'), time());
 	wp_register_style(  'genmapper_template_css', GENMAPPER_URL . 			GENMAPPER_THEME."/style.css" );
@@ -164,7 +165,9 @@ function genmapper_sc($atts, $content)
     //$content.= '<h1>GEN MAPPER</h1>';
     $content.='';
    $content.='<section id="genmapper_info">';
-    $content.='<div id="genmapper_info-content"><span class="username">'.$display_name.'</span> | Genmaps: '.genmapper_genmap_select().'</div>';
+    $content.='<div id="genmapper_info-content"><span class="username">'.$display_name.'</span>';
+    $content.= $cu->ID ? '| Genmaps: '.genmapper_genmap_select():'';
+    $content.='</div>';
     $content.='<div id="genmapper_info-editor" style="display:none">';
     $content.='<form onsubmit="genmapper.saveInfoOnClick(); return false;">';
     $content.='<input type="hidden" name="id">';
@@ -179,6 +182,7 @@ function genmapper_sc($atts, $content)
     $content.='</li>';
     $content.='<li>';
     $content.='<input type="button" value="save" onclick="genmapper.saveInfoOnClick();" >';
+    $content.='<input type="button" value="delete" onclick="genmapper.deleteGenmapOnClick();" >';
     $content.='</li>';
     $content.='</ul>';
     
@@ -221,7 +225,7 @@ function genmapper_genmap_select()
 	
 	$h='<select onchange="window.genmapper.selectGenmapOnChange(this);">'.PHP_EOL;
 	$h.='<option value="">Select genmap here to load from database</option>'.PHP_EOL;
-	$rows=$wpdb->get_results("SELECT * FROM $genmap_t_genmap ORDER BY id");
+	$rows=$wpdb->get_results("SELECT * FROM $genmap_t_genmap WHERE `deleted` IS NULL ORDER BY id");
 	foreach ($rows as $r )
 	{
 		$h.='<option value="'.$r->id.'">'.$r->name.'</option>'.PHP_EOL;
@@ -589,6 +593,14 @@ function ajax_genmapper_update_genmap_info()
 		
 	}
 
+	if ( isset($_POST['delete']) && $_POST['delete'] == 'true' ) {
+		//jogosultsag ellenorzes
+
+		//torles 
+		$genmap_info['deleted'] = date('Y-m-d H:i:s');
+		$result=2;
+	}
+
 	
 	
 
@@ -603,7 +615,7 @@ function ajax_genmapper_update_genmap_info()
 	$updated_rowscount = $wpdb->update( $genmap_t_genmap, $genmap_info, array( 'id' => $genmap_info['id'] ) );  
 	
 	
-		$result =1;
+		$result =isset($result)?$result:1;
 		$msg = 'successful updated genmap record '.$updated_rowscount;
 	}
 	else
@@ -755,9 +767,6 @@ function genmapper_user_country_is_set()
 	</script>
 	<?php	
 	}
-	
-	
-///////	wp_die('test func');
 }
 
 add_action( 'wp_print_footer_scripts', 'genmapper_user_country_is_set' );

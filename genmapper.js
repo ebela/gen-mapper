@@ -1007,24 +1007,47 @@ class GenMapper {
   }
   
   saveInfoOnClick() {
-	var $ = window.jQuery;
-	
-	var that=this;
+	this.sendGenmapChangeEvent();
+  }
 
-	$.post( GenMapperBase.ajaxurl , {
+  deleteGenmapOnClick() {
+	this.sendGenmapChangeEvent({delete:true});
+  }
+
+
+  sendGenmapChangeEvent(moredata)
+  {
+	var $ = window.jQuery;
+	  
+	var data = {
 		'action' : 'genmapper_update_genmap_info',
 		'genmap_info': $('#genmapper_info-editor form').serialize()
-	}).done(function(_data,status,jqxhr) {
+	};
+	
+	if ( typeof moredata !== 'undefined' )
+		Object.assign( data, moredata )
+		
+	var that=this;
+	
+	console.log('sendGenmapChangeEvent ', data);
+	
+
+	$.post( GenMapperBase.ajaxurl , data).done(function(_data,status,jqxhr) {
 		var data = $.parseJSON( _data);
-		console.log('GENMAP INFO UPDATE DONE', data);
+		console.log('genmap info update done', data);
 		if ( data.result == 1 ) {
 			$("#genmapper_info-content select option:selected").text($('#genmapper_info-editor form input[name=name]').val());
+		}
+		else if ( data.result == 2 ) {
+			//$("#genmapper_info-content select option:selected").remove();
+			window.location.reload(false);
 		}
 		///that.importAjaxDone(data); 
 	});
 	$('#genmapper_info-editor').hide();
 	  
   }
+
   
   
 }
