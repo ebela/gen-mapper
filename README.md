@@ -37,6 +37,7 @@ JavaScript/CSS libraries used:
 * [js-xlsx](https://github.com/SheetJS/js-xlsx) - SheetJS
 * [lodash](https://lodash.com) - JS Foundation and other contributors
 * [hint.css](https://github.com/chinchang/hint.css/) - Kushagra Gour
+* [select2](https://github.com/select2/select2) 
 
 Icons used:
 * [IcoMoon-Free](https://github.com/Keyamoon/IcoMoon-Free) - Keyamoon
