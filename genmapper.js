@@ -693,7 +693,7 @@ class GenMapper {
       const filenameNoExtension = regex.exec(filename)[1]
       this.projectName = filenameNoExtension
       d3.select('#project-name')
-        .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.projectName)
+        .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.genmap.name)
       this.redraw(template)
     })
   }
@@ -899,7 +899,7 @@ class GenMapper {
     this.addFieldsToEditWindow(template)
     document.getElementById('lang-' + this.language).className = 'current-lang'
     d3.select('#project-name')
-      .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.projectName)
+      .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.genmap.name)
       .on('click', () => {
 	      this.editInfoOnClick()
 	      /*
@@ -972,7 +972,7 @@ class GenMapper {
       const filenameNoExtension = regex.exec(filename)[1]
       this.projectName = filenameNoExtension
       d3.select('#project-name')
-        .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.projectName)
+        .attr('aria-label', i18next.t('messages.editProjectName') + ': ' +  this.genmap.name)
       this.redraw(template)
     //copypesztkod vege
 	  
@@ -1036,7 +1036,10 @@ class GenMapper {
 		var data = $.parseJSON( _data);
 		console.log('genmap info update done', data);
 		if ( data.result == 1 ) {
-			$("#genmapper_info-content select option:selected").text($('#genmapper_info-editor form input[name=name]').val());
+			///$("#genmapper_info-content select option:selected").text($('#genmapper_info-editor form input[name=name]').val());
+			var $select = $("#genmapper_info-content select");
+			$("option:selected", $select).text($('#genmapper_info-editor form input[name=name]').val());
+			$select.select2();
 		}
 		else if ( data.result == 2 ) {
 			//$("#genmapper_info-content select option:selected").remove();

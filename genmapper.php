@@ -7,6 +7,11 @@ stilusok
 church-circles/
 church-circles-czech/style.css template.js
 
+
+used components:
+- https://github.com/select2/select2   
+
+
 */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
@@ -39,11 +44,17 @@ define('GENMAPPER_THEME','movementeer');
 
 function genmapper_init()
 {
+
+
+	wp_register_style(  'jq-select2_css', GENMAPPER_URL . "select2.min.css" );
+	wp_register_script( 'jq-select2_js', GENMAPPER_URL . "select2.min.js", array('jquery') );
+
 	
 	wp_register_style(  'hint_css', GENMAPPER_URL . "hint.min.css" );
-	wp_register_style(  'genmapper_base_css', GENMAPPER_URL . "style-base.css", array('hint_css'), time() );
+	wp_register_style(  'genmapper_main_css', GENMAPPER_URL . "style.css", array(), time() );
+	wp_register_style(  'genmapper_base_css', GENMAPPER_URL . "style-base.css", array('genmapper_main_css','hint_css','jq-select2_css'), time() );
 
-	wp_register_script( 'genmapper_main_script', GENMAPPER_URL . 	"genmapper.js" , array('d3','i18next', 'loadsh','genmapper_translations','FileSaver','xlsx', 'genmapper_template_js','jquery'), time());
+	wp_register_script( 'genmapper_main_script', GENMAPPER_URL . 	"genmapper.js" , array('d3','i18next', 'loadsh','genmapper_translations','FileSaver','xlsx', 'genmapper_template_js','jquery','jq-select2_js'), time());
 	wp_register_style(  'genmapper_template_css', GENMAPPER_URL . 			GENMAPPER_THEME."/style.css" );
 	wp_register_script( 'genmapper_template_js', GENMAPPER_URL . 	GENMAPPER_THEME."/template.js" , array('d3','i18next', 'loadsh','FileSaver','xlsx'), time());
 	
@@ -223,12 +234,15 @@ function genmapper_genmap_select()
 	global $wpdb;
 	global $genmap_t_genmap;
 	
-	$h='<select onchange="window.genmapper.selectGenmapOnChange(this);">'.PHP_EOL;
+	$h='<select class="select2" onchange="window.genmapper.selectGenmapOnChange(this);">'.PHP_EOL;
 	$h.='<option value="">Select genmap here to load from database</option>'.PHP_EOL;
-	$rows=$wpdb->get_results("SELECT * FROM $genmap_t_genmap WHERE `deleted` IS NULL ORDER BY id");
+	$rows=$wpdb->get_results("SELECT `id`, `country_code`, `name`, DATE(`last_mod_date`) AS `mod_date` FROM $genmap_t_genmap WHERE `deleted` IS NULL ORDER BY `last_mod_date` DESC");
 	foreach ($rows as $r )
 	{
-		$h.='<option value="'.$r->id.'">'.$r->name.'</option>'.PHP_EOL;
+		$option_text = is_super_admin() ? $r->country_code.' - ':'';
+		$option_text.= htmlspecialchars($r->name).' - '.$r->mod_date;
+		
+		$h.='<option value="'.$r->id.'">'.$option_text.'</option>'.PHP_EOL;
 	}
 	$h.='</select>';
 	return $h;
@@ -797,3 +811,15 @@ function ajax_genmapper_user_country_selected() {
 
 add_action( 'wp_ajax_genmapper_user_country_selected', 'ajax_genmapper_user_country_selected' );
 
+
+function genmapper_footer_scripts () { ?>
+
+	<script language="javascript" type="text/javascript">
+		window.jQuery( document ).ready( function( $ ) {
+			$(".select2").select2();
+		} );
+	</script>
+
+<?php } 
+
+add_action( 'wp_print_footer_scripts', 'genmapper_footer_scripts');
