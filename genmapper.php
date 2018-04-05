@@ -33,6 +33,8 @@ define('GENMAPPER_THEME','movementeer');
 	$genmap_t_genmap = $wpdb->prefix . 'genmap';
 	global $genmap_t_genmap_nodes;
 	$genmap_t_genmap_nodes = $wpdb->prefix . 'genmap_nodes';
+	global $genmap_t_genmap_countries;
+	$genmap_t_genmap_countries = $wpdb->prefix . 'genmap_countries'; 
 	
 	global $genmap_fields_string;
 	$genmap_fields_string = 'id,parentId,name,leaderType,place,date,attenders,believers,baptized,church,elementWord,elementPrayer,elementLove,elementWorship,elementMakeDisciples,elementLeaders,elementGive,elementLordsSupper,elementBaptism,threeThirds,trainingUsed,trainingPhase,active,actionSteps,contact';
@@ -249,6 +251,8 @@ function genmapper_genmap_select()
 
 function genmapper_country_select($selected=null, $echo = false)
 {
+	global $wpdb;
+	global $genmap_t_genmap_countries;
 	$countries=array(
 		array('name'=>'', 'code'=>''),
 	    array('name'=>'Albania', 'code'=>'ALB'),
@@ -273,12 +277,12 @@ function genmapper_country_select($selected=null, $echo = false)
         array('name'=>'Israel', 'code'=>'ISR'),
     );
     
-   	///$countries=$wpdb->get_results("SELECT $genmap_fields_string FROM $genmap_t_genmap_nodes  WHERE genmap_id=$genmap_id AND `deleted` IS NULL ORDER BY id");
+    $countries=$wpdb->get_results("SELECT `name`, `alpha3_code` AS `code` FROM $genmap_t_genmap_countries WHERE `active` = 'Y'  ORDER BY `name`");
 
-    $content='<select name="country_code">';
+    $content='<select class="select2" name="country_code">';
     foreach ($countries as $c) {
-	    $_selected = $c['code'] == $selected ? ' selected':'';
-	    $content.='<option'.$_selected .' value="'.$c['code'].'">'.$c['name'].'</option>';
+	    $_selected = $c->code == $selected ? ' selected':'';
+	    $content.='<option'.$_selected .' value="'.$c->code.'">'.$c->name.'</option>';
 	}
     $content.='</select>';
     if ( $echo ) echo $content;
