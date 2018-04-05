@@ -175,7 +175,7 @@ function genmapper_sc($atts, $content)
     
     //$content.= '<h1>GEN MAPPER</h1>';
     $content.='';
-   $content.='<section id="genmapper_info">';
+    $content.='<section id="genmapper_info">';
     $content.='<div id="genmapper_info-content"><span class="username">'.$display_name.'</span>';
     $content.= $cu->ID ? '| Genmaps: '.genmapper_genmap_select():'';
     $content.='</div>';
@@ -197,10 +197,9 @@ function genmapper_sc($atts, $content)
     $content.='</li>';
     $content.='</ul>';
     
-    $content.='</form></div>
-    
-    </section>
-  <aside id="left-menu"></aside>
+    $content.='</form></div>';
+    $content.='</section>';
+    $content.='<aside id="left-menu"></aside>
 
   <section id="intro">
     <div id="intro-content"></div>
@@ -448,10 +447,18 @@ function ajax_genmapper_nodes2db()
 		global $genmap_t_genmap_nodes;
 		$table_name = $genmap_t_genmap_nodes;
 		
-		$upload_group_id = null;
+		//shadow copy of nodes.. maybe not needed..
+		$_nodes = $nodes;
 
 		foreach ($nodes as $i=>$n )
 		{
+			$generation=0;
+			$_i=$i;$safetyexitcounter=100000;
+			while ( $_nodes[$_i]['parentId']!='' && $safetyexitcounter-- ) { 
+				$generation++; 
+				$_i=$_nodes[$_i]['parentId']; 
+			}
+			$n['generation']=$generation;
 			genmapper_add_node($n, $genmap_id);
 		}
 	}

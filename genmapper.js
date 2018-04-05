@@ -574,6 +574,7 @@ class GenMapper {
     })
     newNodeData['id'] = this.findNewId()
     newNodeData['parentId'] = d.data.id
+    newNodeData['generation'] = d.depth+1;
     console.log('addNode', d, newNodeData);
     this.sendEvent({cmd:'addNode', nodeData:newNodeData, genmap:this.genmap});
     this.data.push(newNodeData)
