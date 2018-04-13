@@ -24,7 +24,7 @@ class GenMapper {
       this.language = 'en'
     }
     this.baseurl = GenMapperBase.baseurl || '/wp-content/plugins/gen-mapper' // '..' 
-    this.genmap = {id:0,name:'Untitled Genmap', country_code: 'us' }		//id:0 jelzi, hogy nincs mentve
+    this.genmap = {id:0,name:i18next.t('menu.defaultProjectName')/*'Untitled Genmap'*/, country_code: 'USA' }		//id:0 jelzi, hogy nincs mentve
 
     this.mainEl = 'genmap-main'
     this.mainsvgEl = 'genmap-main-svg'
@@ -39,9 +39,9 @@ class GenMapper {
     
 
     this.margin = {top: 50, right: 30, bottom: 50, left: 30}
-    this.projectName = i18next.t('menu.defaultProjectName')
 
     this.updateDOMafterLangSwitch()
+    this.updateGenmapperInfoForm()
 
     this.zoom = d3.zoom()
       .scaleExtent([0.15, 2])
@@ -72,6 +72,7 @@ class GenMapper {
 
     this.alertElement = document.getElementById('alert-message')
     this.editGroupElement = document.getElementById(this.editEl)
+    this.genmapperInfoEditorElement = document.getElementById('genmapper_info-editor')
 
     this.setKeyboardShorcuts()
 
@@ -91,6 +92,9 @@ class GenMapper {
           if (this.editGroupElement.style.display !== 'none') {
             this.editGroupElement.style.display = 'none'
           }
+          if (this.genmapperInfoEditorElement.style.display !== 'none') {
+            this.genmapperInfoEditorElement.style.display = 'none'
+          }
         }
       } else if (e.keyCode === 13) {
         // hitting enter is like submitting changes in the edit window
@@ -103,7 +107,8 @@ class GenMapper {
 
   setSvgHeight () {
     const windowHeight = document.documentElement.clientHeight
-    const leftMenuHeight = document.getElementById(this.leftmenuEl).clientHeight
+    let lme = document.getElementById(this.leftmenuEl)
+    const leftMenuHeight = lme ? lme.clientHeight : 0
     const height = Math.max(windowHeight, leftMenuHeight + 10)
     d3.select('#'+this.mainsvgEl)
       .attr('height', height)
@@ -666,7 +671,7 @@ class GenMapper {
     const isSafari = navigator.vendor && navigator.vendor.indexOf('Apple') > -1 &&
                  navigator.userAgent && !navigator.userAgent.match('CriOS')
     const promptMessage = isSafari ? i18next.t('messages.saveAsInSafari') : i18next.t('messages.saveAs')
-    const saveName = window.prompt(promptMessage, this.projectName + '.csv')
+    const saveName = window.prompt(promptMessage, this.genmap.name + '.csv')
     if (saveName === null) return
     saveAs(blob, saveName)
   }
@@ -682,17 +687,11 @@ class GenMapper {
 
   importFile () {
     this.importFileFromInput('file-input', (filedata, filename) => {
-	console.log('filename', filename, 'filedata', filedata);
+	  console.log('filename', filename, 'filedata', filedata);
       const parsedCsv = this.parseAndValidateCsv(filedata, filename)
-      //console.log(parsedCsv);
-      //console.log('parsedCsv dir');
-      //console.dir(parsedCsv);
-      if (parsedCsv === null) { return }
+	  if (parsedCsv === null) { return }
       this.sendNodesToDb(parsedCsv)
       this.data = parsedCsv
-      const regex = /(.+?)(\.[^.]*$|$)/
-      const filenameNoExtension = regex.exec(filename)[1]
-      this.projectName = filenameNoExtension
       d3.select('#project-name')
         .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.genmap.name)
       this.redraw(template)
@@ -831,7 +830,7 @@ class GenMapper {
   }
 
   fileToCsvString (filedata, filename) {
-	  console.log('fileToCsvString ', filedata, filename);
+	console.log('fileToCsvString ', filedata, filename);
     const regex = /(?:\.([^.]+))?$/
     const extension = regex.exec(filename)[1].toLowerCase()
     let csvString
@@ -903,15 +902,6 @@ class GenMapper {
       .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.genmap.name)
       .on('click', () => {
 	      this.editInfoOnClick()
-	      /*
-        let userInput = window.prompt(i18next.t('messages.editProjectName'), this.projectName)
-        if (userInput === null) { return }
-        userInput = userInput.trim()
-        if (userInput === '') { this.displayAlert(i18next.t('messages.errProjectNameEmpty')) } else {
-          this.projectName = userInput
-          d3.select('#project-name')
-            .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.projectName)
-        } */
       })
     this.editFieldElements = {}
     template.fields.forEach((field) => {
@@ -937,27 +927,57 @@ class GenMapper {
 		'nodes': ( nodes )
 	}).done(function() { console.log('DONE')});
   }
-  
+
   sendEvent(data) {
+	  this.sendPost('genmapper_send_event', data);
+  }
+  
+  sendCommand(data,receivedCallback) {
+	  this.sendPost('genmapper_send_command', data,receivedCallback);
+  }
+  
+  
+  sendPost(action, data, receivedCallback) {
+	if ( ! this.genmap.id ) {
+		console.log('genmap not saved, not send any event to backedn');
+		return false;
+	}
 	var $ = window.jQuery;
 	
 	$.post( GenMapperBase.ajaxurl , {
-		'action' : 'genmapper_send_event',
+		'action' : action,
 		///'nodes': JSON.stringify( nodes )
 		'data': ( data )
-	}).done(function() { console.log('DATA SENT')});
+	}).done(function(receivedData,status,jqxhr) { 
+		console.log('data posted'); 
+		if (typeof receivedCallback == 'function' ) {
+			receivedCallback(receivedData, status);
+		}
+	});
 	  
+  }
+  
+  updateGenmapperInfoForm() {
+	var $ = window.jQuery;
+	//update genmapper info edit
+	$('#genmapper_info-editor input[name=id]').val(this.genmap.id)
+	$('#genmapper_info-editor input[name=name]').val(this.genmap.name)
+	$('#genmapper_info-editor select[name=country_code]').val(this.genmap.country_code).select2();
+  }
+
+  updateGenmapperInfoFromForm() {
+	var $ = window.jQuery;
+	//update genmapper info edit
+	this.genmap.id = $('#genmapper_info-editor input[name=id]').val()
+	this.genmap.name = $('#genmapper_info-editor input[name=name]').val()
+	this.genmap.country_code = $('#genmapper_info-editor select[name=country_code]').val()
   }
   
   
   importAjaxDone(data) {
-	var $ = window.jQuery;
 
-	//update genmapper info edit
-	$('#genmapper_info-editor input[name=id]').val(data.genmap.id)
-	$('#genmapper_info-editor input[name=name]').val(data.genmap.name)
-	$('#genmapper_info-editor select[name=country_code]').val(data.genmap.country_code)
 	this.genmap = data.genmap;
+	this.updateGenmapperInfoForm();
 	
 	//nodes 
 	let filedata = data.csv;
@@ -969,9 +989,6 @@ class GenMapper {
       console.dir(parsedCsv);
       if (parsedCsv === null) { return }
       this.data = parsedCsv
-      const regex = /(.+?)(\.[^.]*$|$)/
-      const filenameNoExtension = regex.exec(filename)[1]
-      this.projectName = filenameNoExtension
       d3.select('#project-name')
         .attr('aria-label', i18next.t('messages.editProjectName') + ': ' +  this.genmap.name)
       this.redraw(template)
@@ -1022,31 +1039,51 @@ class GenMapper {
 	  
 	var data = {
 		'action' : 'genmapper_update_genmap_info',
-		'genmap_info': $('#genmapper_info-editor form').serialize()
+//		'genmap_info': $('#genmapper_info-editor form').serialize()
 	};
+	
+	this.updateGenmapperInfoFromForm();
+	data.genmap_info = this.genmap;
+	if ( this.genmap.id == 0 ) {
+		data.root_node = this.data[0];
+		data.nodes = this.data;
+	}
 	
 	if ( typeof moredata !== 'undefined' )
 		Object.assign( data, moredata )
-		
+	
 	var that=this;
 	
-	console.log('sendGenmapChangeEvent ', data);
+//	console.log('sendGenmapChangeEvent current genmapper info ', this.genmap);
+//	console.log('sendGenmapChangeEvent current genmapper data ', this.data);
+//	console.log('sendGenmapChangeEvent ', data);
 	
 
 	$.post( GenMapperBase.ajaxurl , data).done(function(_data,status,jqxhr) {
-		var data = $.parseJSON( _data);
+		var data = $.parseJSON( _data) || _data;
 		console.log('genmap info update done', data);
-		if ( data.result == 1 ) {
+		if ( data.result == 1 ) {  /* genmap updated */
 			///$("#genmapper_info-content select option:selected").text($('#genmapper_info-editor form input[name=name]').val());
 			var $select = $("#genmapper_info-content select");
 			$("option:selected", $select).text($('#genmapper_info-editor form input[name=name]').val());
 			$select.select2();
 		}
-		else if ( data.result == 2 ) {
+		else if ( data.result == 2 ) { /* genmap deleted */
 			//$("#genmapper_info-content select option:selected").remove();
 			window.location.reload(false);
 		}
-		///that.importAjaxDone(data); 
+		else if ( data.result == 3 ) { /* genmap created */
+			if ( data.genmap_info ) {
+				var $select = $("#genmapper_info-content select");
+				$('option:first',$select)
+					.after($("<option></option>")
+                    .attr("value",data.genmap_info.id)
+                    .text(data.genmap_info.name));
+                $select.val(data.genmap_info.id); 
+                $select.select2();
+            }
+			//window.location.reload(false);
+		}
 	});
 	$('#genmapper_info-editor').hide();
 	  
