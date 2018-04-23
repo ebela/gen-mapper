@@ -692,8 +692,6 @@ class GenMapper {
 	  if (parsedCsv === null) { return }
       this.sendNodesToDb(parsedCsv)
       this.data = parsedCsv
-      d3.select('#project-name')
-        .attr('aria-label', i18next.t('messages.editProjectName') + ': ' + this.genmap.name)
       this.redraw(template)
     })
   }
@@ -920,12 +918,19 @@ class GenMapper {
   
   sendNodesToDb (nodes) {
 	var $ = window.jQuery;
-	
+	var that = this;
 	$.post( GenMapperBase.ajaxurl , {
 		'action' : 'genmapper_nodes2db',
-		///'nodes': JSON.stringify( nodes )
 		'nodes': ( nodes )
-	}).done(function() { console.log('DONE')});
+	}).done(function(_data,status,jqxhr) {
+		var data = $.parseJSON( _data) || _data;
+		console.log('sendNodesToDb DONE', data);
+		that.genmap=data.genmap;
+		that.addNewGenmapToListbox(data.genmap);
+		that.updateGenmapperInfoForm();
+		
+	});
+
   }
 
   sendEvent(data) {
@@ -946,7 +951,6 @@ class GenMapper {
 	
 	$.post( GenMapperBase.ajaxurl , {
 		'action' : action,
-		///'nodes': JSON.stringify( nodes )
 		'data': ( data )
 	}).done(function(receivedData,status,jqxhr) { 
 		console.log('data posted'); 
@@ -963,6 +967,11 @@ class GenMapper {
 	$('#genmapper_info-editor input[name=id]').val(this.genmap.id)
 	$('#genmapper_info-editor input[name=name]').val(this.genmap.name)
 	$('#genmapper_info-editor select[name=country_code]').val(this.genmap.country_code).select2();
+	
+
+    d3.select('#project-name')
+      .attr('aria-label', i18next.t('messages.editProjectName') + ': ' +  this.genmap.name)
+
   }
 
   updateGenmapperInfoFromForm() {
@@ -976,22 +985,20 @@ class GenMapper {
   
   importAjaxDone(data) {
 
-	this.genmap = data.genmap;
-	this.updateGenmapperInfoForm();
-	
 	//nodes 
 	let filedata = data.csv;
 	let filename = 'imported.csv';
 	//copypesztkod eleje
 	console.log('filename', filename, 'filedata', filedata);
 	console.log('data', data);
-      const parsedCsv = this.parseAndValidateCsv(filedata, filename)
-      console.dir(parsedCsv);
-      if (parsedCsv === null) { return }
-      this.data = parsedCsv
-      d3.select('#project-name')
-        .attr('aria-label', i18next.t('messages.editProjectName') + ': ' +  this.genmap.name)
-      this.redraw(template)
+    const parsedCsv = this.parseAndValidateCsv(filedata, filename)
+    console.dir(parsedCsv);
+    if (parsedCsv === null) { return }
+    this.data = parsedCsv
+
+	this.genmap = data.genmap;
+	this.updateGenmapperInfoForm();
+    this.redraw(template)
     //copypesztkod vege
 	  
   }
@@ -1031,6 +1038,18 @@ class GenMapper {
   deleteGenmapOnClick() {
 	this.sendGenmapChangeEvent({delete:true});
   }
+  
+  addNewGenmapToListbox(genmap_info) {
+	var $ = window.jQuery;
+	var $select = $("#genmapper_info-content select");
+	$('option:first',$select)
+		.after($("<option></option>")
+	    .attr("value",genmap_info.id)
+	    .text(genmap_info.country_code + ' - ' + genmap_info.name));
+	$select.val(genmap_info.id); 
+	$select.select2();
+	  
+  }
 
 
   sendGenmapChangeEvent(moredata)
@@ -1065,7 +1084,8 @@ class GenMapper {
 		if ( data.result == 1 ) {  /* genmap updated */
 			///$("#genmapper_info-content select option:selected").text($('#genmapper_info-editor form input[name=name]').val());
 			var $select = $("#genmapper_info-content select");
-			$("option:selected", $select).text($('#genmapper_info-editor form input[name=name]').val());
+			var genmap_info=that.genmap;
+			$("option:selected", $select).text(genmap_info.country_code + ' - ' + genmap_info.name);
 			$select.select2();
 		}
 		else if ( data.result == 2 ) { /* genmap deleted */
@@ -1074,15 +1094,8 @@ class GenMapper {
 		}
 		else if ( data.result == 3 ) { /* genmap created */
 			if ( data.genmap_info ) {
-				var $select = $("#genmapper_info-content select");
-				$('option:first',$select)
-					.after($("<option></option>")
-                    .attr("value",data.genmap_info.id)
-                    .text(data.genmap_info.name));
-                $select.val(data.genmap_info.id); 
-                $select.select2();
+				that.addNewGenmapToListbox(data.genmap_info);
             }
-			//window.location.reload(false);
 		}
 	});
 	$('#genmapper_info-editor').hide();

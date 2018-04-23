@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS $table_name(
 ) $charset_collate";
 
 	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-	dbDelta( $sql );
+	//dbDelta( $sql );
 }
 
 register_activation_hook( __FILE__, 'genmapper_create_db' );
@@ -173,13 +173,72 @@ function genmapper_sc($atts, $content)
     $cu = wp_get_current_user();
     $display_name = $cu->ID ? $cu->display_name : '<a href="'.get_site_url(null,'/wp-login.php').'">Not logged in user</a>';
     //error_log(var_export($cu,1));
+    
+    $genmapper_info_content = '<span class="username">'. $display_name .'</span>
+	' . ( $cu->ID ? 
+		'| Genmaps: '.genmapper_genmap_select().' | '.'<input type="button" name="new_genmap" value="New genmap" onclick="javascript:window.location.reload(false);"> ' 
+		: 
+		'' ). '';	
+    
     $content = '';
     
-    $contentGenmapperInfo='<section id="genmapper_info">
+    $contentGenmapperInfo='
+<style>
+.gm_inprogress_wrap1 {
+visibility: hidden;
+z-index: 999999;
+position: absolute;
+left: 0;
+top: 0;
+width: 100%;
+height: 100%;
+}
 
-	<div id="genmapper_info-content"><span class="username">'. $display_name .'</span>
-	' . ( $cu->ID ? '| Genmaps: '.genmapper_genmap_select():'' ). '
+.gm_inprogress_wrap2 {
+visibility: visible;
+font-size: 80%;
+}
+
+.gm_inprogress_inlineblock {
+position: relative;
+display: -moz-inline-box;
+display: inline-block;
+}
+
+.gm_inprogress_wrap2 .gm_inprogress_msg_style {
+background-color: #f9edbe;
+border: 1px solid #f0c36d;
+-webkit-border-radius: 0 0 2px 2px;
+border-radius: 0 0 2px 2px;
+-webkit-box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+color: #222;
+padding: 6px 10px;
+}
+
+.gm_inprogress_inner {
+	padding-left: 2px;white-space: nowrap;
+}
+	
+</style>
+<div id="genmapper_inprogress" class="gm_inprogress_wrap1" style="display: none">
+	<div class="gm_inprogress_wrap2" style="text-align: center;">
+		<div class="gm_inprogress_inlineblock">
+			<div class="gm_inprogress_msg_style">
+				<div class="gm_inprogress_inlineblock">
+					<div class="gm_inprogress_inner">
+						Loading...
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
+</div>
+
+    
+    <section id="genmapper_info">
+
+	<div id="genmapper_info-content">'.$genmapper_info_content.'</div>
 	<div id="genmapper_info-editor" style="display:none">
 	<form onsubmit="genmapper.saveInfoOnClick(); return false;">
 	<input type="hidden" name="id">
@@ -245,7 +304,7 @@ function genmapper_genmap_select()
 	
 	$h='<select class="select2" data-placeholder="Select genmap here to load from database" onchange="window.genmapper.selectGenmapOnChange(this);">'.PHP_EOL;
 	$h.='<option value="">Select genmap here to load from database</option>'.PHP_EOL;
-	$rows=$wpdb->get_results("SELECT `id`, `country_code`, `name`, DATE(`last_mod_date`) AS `mod_date` FROM $genmap_t_genmap WHERE `deleted` IS NULL OR `deleted` = '0000-00-00 00:00:00' ORDER BY `last_mod_date` DESC");
+	$rows=$wpdb->get_results("SELECT `id`, `country_code`, `name`, DATE(`last_mod_date`) AS `mod_date` FROM $genmap_t_genmap WHERE `deleted` IS NULL  ORDER BY `last_mod_date` DESC");
 	foreach ($rows as $r )
 	{
 		//$option_text = is_super_admin() ? $r->country_code.' - ':'';
@@ -281,6 +340,8 @@ function genmapper_create_genmap($gi = null)
 	global $genmap_t_genmap;
 	
 	$name = isset($gi['name']) && $gi['name'] ? $gi['name'] : 'Genmap - '.date('Y.m.d. H:i:s');
+	$country_code=isset($gi['country_code']) && $gi['country_code'] ? $gi['country_code'] : get_user_meta(get_current_user_id(), 'genmapper_country_code', true);
+
 	
 	$data = is_array($gi) ? $gi : array();
 	$data['name'] = $name;
@@ -288,8 +349,20 @@ function genmapper_create_genmap($gi = null)
 	$data['last_mod_user_id']=get_current_user_id();
 	$data['last_mod_date']=date('Y-m-d H:i:s');
 	$data['create_date']=date('Y-m-d H:i:s');
+
+	$data['country_code'] = $country_code;
+
+
 	$wpdb->insert($genmap_t_genmap,$data);
 	return $wpdb->insert_id;
+}
+
+function genmapper_get_genmap($genmap_id)
+{
+	global $wpdb;
+	global $genmap_t_genmap;
+	$genmap_info=$wpdb->get_row("SELECT * FROM $genmap_t_genmap WHERE `id`=$genmap_id");
+	return $genmap_info;
 }
 
 function genmapper_is_node_exists($nodeData, $genmap_id=null)
@@ -384,7 +457,20 @@ function genmapper_remove_node($nodeData, $genmap_id=null)
 	if ( $nodeData['id'] == 0 ) $nodeData['parentId'] = null;
 
 	error_log('deleting node '.var_export($nodeData,1 ));  
-	$updated_rowscount = $wpdb->update( $genmap_t_genmap_nodes, array('deleted'=>current_time('mysql', 1)), array( 'genmap_id'=>$genmap_id, 'id' => $nodeData['id'], 'parentId' => $nodeData['parentId'],'deleted'=>null ) );  
+	$updated_rowscount = $wpdb->update( 
+		$genmap_t_genmap_nodes, 
+		array( 'deleted'=> current_time('mysql', 1) 
+		),
+		//strtotime("now") ), //date('Y-m-d H:i:s') ) , //''.current_time('mysql', 1)).'', 
+		array( 'genmap_id'=>$genmap_id, 
+			   'id' => $nodeData['id'], 
+			   'parentId' => $nodeData['parentId'],
+			   'deleted'=>null 
+		) ,
+		array( '%s' )
+			   
+		
+		);  
 	error_log(__FUNCTION__.' '.$wpdb->last_query);
 	error_log('deleted row count: '.var_export($updated_rowscount ,1)) ;  
 	
@@ -432,6 +518,11 @@ function ajax_genmapper_nodes2db()
 
 	genmapper_store_nodes($genmap_id, $nodes);
 	error_log(__FUNCTION__.' end');
+
+	$answer['genmap']=genmapper_get_genmap($genmap_id);
+	$answer['message']='Uploaded nodes stored in db';	
+	echo json_encode($answer);
+
 	wp_die();
 }
 
@@ -553,8 +644,7 @@ function ajax_genmapper_import_from_db()
 			$csv.=$f.',';
 		}
 	}
-	$genmap_info=$wpdb->get_row("SELECT * FROM $genmap_t_genmap WHERE `id`=$genmap_id");
-	$answer['genmap']=$genmap_info;
+	$answer['genmap']=genmapper_get_genmap($genmap_id);
 	$answer['csv']=$csv;
 	
 	echo json_encode($answer);
@@ -653,7 +743,7 @@ function ajax_genmapper_update_genmap_info()
 		$genmap_info['last_mod_user_id']=get_current_user_id();
 		$genmap_info['last_mod_date']=date('Y-m-d H:i:s');
 	
-		$updated_rowscount = $wpdb->update( $genmap_t_genmap, $genmap_info, array( 'id' => $genmap_info['id'] ) );  
+		$updated_rowscount = $wpdb->update( $genmap_t_genmap, $genmap_info, array( 'id' => $genmap_info['id'] ), array('%s') );  
 		
 		
 			$result =isset($result)?$result:1;
@@ -847,6 +937,14 @@ function genmapper_footer_scripts () { ?>
 	<script language="javascript" type="text/javascript">
 		window.jQuery( document ).ready( function( $ ) {
 			$(".select2").select2();
+			$( document ).ajaxStart(function() {
+			  console.log( "Triggered ajaxStart handler." );
+			  $('#genmapper_inprogress').show();
+			});
+			$( document ).ajaxComplete(function() {
+			  console.log( "Triggered ajaxComplete handler." );
+			  $('#genmapper_inprogress').hide();
+			});	
 		} );
 	</script>
 
