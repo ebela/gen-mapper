@@ -1,5 +1,13 @@
 window.console.log("genmapper.js first line");
 window.console.log("GenMapperBase", GenMapperBase);
+
+function genmapper_gmap_init()
+{
+	console.log('gmap initialized');
+	var fieldname="edit-place";
+	var googleMapInput =  document.getElementById(fieldname);
+	var googleMapAutocomplete = new google.maps.places.Autocomplete(googleMapInput);
+}
  
 //alert('sasa');
 class GenMapper {

@@ -24,7 +24,10 @@ define( 'GENMAPPER_DIR',           plugin_dir_path( __FILE__ ) );
 define('GENMAPPER_THEME','movementeer');
 
 
+define( 'GENMAPPER_MAP_GOOGLE_API_KEY','AIzaSyBCRjAY3pXBm6MI4tECGJjP-6txX9tXQvU');
 
+
+require_once GENMAPPER_DIR.'/extras.inc.php';
 
 //function genmapper_set_db_tables_name()
 //{
@@ -44,6 +47,7 @@ define('GENMAPPER_THEME','movementeer');
 
 
 
+
 function genmapper_init()
 {
 
@@ -51,12 +55,15 @@ function genmapper_init()
 	wp_register_style(  'jq-select2_css', GENMAPPER_URL . "select2.min.css" );
 	wp_register_script( 'jq-select2_js', GENMAPPER_URL . "select2.min.js", array('jquery') );
 
+	wp_register_style(  'jq-datepicker_css', GENMAPPER_URL . "datepicker.min.css" );
+	wp_register_script( 'jq-datepicker_js', GENMAPPER_URL . "datepicker.min.js", array('jquery') );
+
 	
 	wp_register_style(  'hint_css', GENMAPPER_URL . "hint.min.css" );
 	wp_register_style(  'genmapper_main_css', GENMAPPER_URL . "style.css", array(), time() );
-	wp_register_style(  'genmapper_base_css', GENMAPPER_URL . "style-base.css", array('genmapper_main_css','hint_css','jq-select2_css'), time() );
+	wp_register_style(  'genmapper_base_css', GENMAPPER_URL . "style-base.css", array('genmapper_main_css','hint_css','jq-select2_css','jq-datepicker_css'), time() );
 
-	wp_register_script( 'genmapper_main_script', GENMAPPER_URL . 	"genmapper.js" , array('d3','i18next', 'loadsh','genmapper_translations','FileSaver','xlsx', 'genmapper_template_js','jquery','jq-select2_js'), time());
+	wp_register_script( 'genmapper_main_script', GENMAPPER_URL . 	"genmapper.js" , array('d3','i18next', 'loadsh','genmapper_translations','FileSaver','xlsx', 'genmapper_template_js','jquery','jq-select2_js','genmapper_google_api-async-defer','jq-datepicker_js'), time());
 	wp_register_style(  'genmapper_template_css', GENMAPPER_URL . 			GENMAPPER_THEME."/style.css" );
 	wp_register_script( 'genmapper_template_js', GENMAPPER_URL . 	GENMAPPER_THEME."/template.js" , array('d3','i18next', 'loadsh','FileSaver','xlsx'), time());
 	
@@ -69,6 +76,10 @@ function genmapper_init()
 	wp_register_script( 'xlsx', GENMAPPER_URL . "xlsx.core.min.js" );
 
 	wp_localize_script( 'genmapper_template_js', 'GenMapperBase', array( 'ajaxurl' => admin_url( 'admin-ajax.php'), 'baseurl' => GENMAPPER_URL, 'themeurl' => GENMAPPER_URL.''.GENMAPPER_THEME.'/'  ) );
+	
+
+	wp_register_script( 'genmapper_google_api-async-defer', "https://maps.googleapis.com/maps/api/js?key=".GENMAPPER_MAP_GOOGLE_API_KEY."&callback=genmapper_gmap_init&libraries=places" );
+	
 
 
 /*
@@ -945,6 +956,8 @@ function genmapper_footer_scripts () { ?>
 			  console.log( "Triggered ajaxComplete handler." );
 			  $('#genmapper_inprogress').hide();
 			});	
+			
+			$('#edit-date').datepicker();
 		} );
 	</script>
 
