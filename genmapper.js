@@ -952,7 +952,7 @@ class GenMapper {
   
   sendPost(action, data, receivedCallback) {
 	if ( ! this.genmap.id ) {
-		console.log('genmap not saved, not send any event to backedn');
+		console.log('genmap not saved, not send any event to backend');
 		return false;
 	}
 	var $ = window.jQuery;
@@ -974,8 +974,11 @@ class GenMapper {
 	//update genmapper info edit
 	$('#genmapper_info-editor input[name=id]').val(this.genmap.id)
 	$('#genmapper_info-editor input[name=name]').val(this.genmap.name)
-	$('#genmapper_info-editor select[name=country_code]').val(this.genmap.country_code).select2();
-	
+	$('#genmapper_info-editor select[name="country_code[]"]').val(this.genmap.country_code).select2();
+	if ( this.genmap.id == 0 ) 
+		$('#genmapper_changesarenotsaved').show();
+	else
+		$('#genmapper_changesarenotsaved').hide();
 
     d3.select('#project-name')
       .attr('aria-label', i18next.t('messages.editProjectName') + ': ' +  this.genmap.name)
@@ -987,7 +990,7 @@ class GenMapper {
 	//update genmapper info edit
 	this.genmap.id = $('#genmapper_info-editor input[name=id]').val()
 	this.genmap.name = $('#genmapper_info-editor input[name=name]').val()
-	this.genmap.country_code = $('#genmapper_info-editor select[name=country_code]').val()
+	this.genmap.country_code = $('#genmapper_info-editor select[name="country_code[]"]').val()
   }
   
   

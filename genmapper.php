@@ -10,7 +10,8 @@ church-circles-czech/style.css template.js
 
 used components:
 - https://github.com/select2/select2   
-
+- http://loudev.com (multiselect)
+- https://github.com/maykinmedia/dual-listbox (multiselect)
 
 */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
@@ -75,7 +76,13 @@ function genmapper_init()
 	wp_register_script( 'FileSaver', GENMAPPER_URL . "FileSaver.min.js" );
 	wp_register_script( 'xlsx', GENMAPPER_URL . "xlsx.core.min.js" );
 
-	wp_localize_script( 'genmapper_template_js', 'GenMapperBase', array( 'ajaxurl' => admin_url( 'admin-ajax.php'), 'baseurl' => GENMAPPER_URL, 'themeurl' => GENMAPPER_URL.''.GENMAPPER_THEME.'/'  ) );
+	wp_localize_script( 'genmapper_template_js', 'GenMapperBase', 
+		array( 
+			'ajaxurl' => admin_url( 'admin-ajax.php'), 
+			'baseurl' => GENMAPPER_URL, 
+			'themeurl' => GENMAPPER_URL.''.GENMAPPER_THEME.'/', 
+			'default_country_code' => 'DEFAULTCOUNTRYCODE'
+		) );
 	
 
 	wp_register_script( 'genmapper_google_api-async-defer', "https://maps.googleapis.com/maps/api/js?key=".GENMAPPER_MAP_GOOGLE_API_KEY."&callback=genmapper_gmap_init&libraries=places" );
@@ -161,6 +168,7 @@ register_activation_hook( __FILE__, 'genmapper_create_db' );
 
 function genmapper_register_shortcode_requirements()
 {
+	add_action( 'wp_print_footer_scripts', 'genmapper_user_country_is_set' );	
 	wp_enqueue_style('genmapper_base_css');
 	wp_enqueue_style('genmapper_template_css');
 	wp_enqueue_script('genmapper_main_script' );
@@ -269,7 +277,7 @@ padding: 6px 10px;
 	</ul>
 	    
 	</form>
-	<p>Changes are not saved. Name your genmap in order to have the genmap saved</p>
+	<p id="genmapper_changesarenotsaved">Changes are not saved. Name your genmap in order to have the genmap saved</p>
 	</div>
     
   </section>';
@@ -313,9 +321,32 @@ function genmapper_genmap_select()
 	global $wpdb;
 	global $genmap_t_genmap;
 	
+	
+	$user_id = get_current_user_id();
+	
 	$h='<select class="select2" data-placeholder="Select genmap here to load from database" onchange="window.genmapper.selectGenmapOnChange(this);">'.PHP_EOL;
 	$h.='<option value="">Select genmap here to load from database</option>'.PHP_EOL;
-	$rows=$wpdb->get_results("SELECT `id`, `country_code`, `name`, DATE(`last_mod_date`) AS `mod_date` FROM $genmap_t_genmap WHERE `deleted` IS NULL  ORDER BY `last_mod_date` DESC");
+	
+	$q="SELECT `id`, `country_code`, `name`, DATE(`last_mod_date`) AS `mod_date` FROM $genmap_t_genmap WHERE `deleted` IS NULL  ORDER BY `last_mod_date` DESC";
+	
+	$where = '';
+	if ( ! is_super_admin() )
+	{
+		$is_country_manager = get_the_author_meta( 'genmapper_country_manager', $user_id );
+		$genmapper_country_code = get_the_author_meta( 'genmapper_country_code', $user_id );
+
+		if ( $is_country_manager  ) {
+			$where=" AND `country_code` IN ('".implode("','", $genmapper_country_code)."') ";
+		}
+		else {
+			$where=' AND `user_id` = '. $user_id.' ';
+		}
+		
+	}
+	$q="SELECT `id`, `country_code`, `name`, DATE(`last_mod_date`) AS `mod_date` FROM $genmap_t_genmap WHERE `deleted` IS NULL $where ORDER BY `last_mod_date` DESC";
+	
+	$rows=$wpdb->get_results($q);
+	
 	foreach ($rows as $r )
 	{
 		//$option_text = is_super_admin() ? $r->country_code.' - ':'';
@@ -328,16 +359,44 @@ function genmapper_genmap_select()
 	return $h;
 }
 
-function genmapper_country_select($selected=null, $echo = false)
+function genmapper_country_select($selected=null, $args = array())
 {
 	global $wpdb;
 	global $genmap_t_genmap_countries;
+	
+	if ( is_bool($args)) {
+		$args  = array('echo'=>$args);
+	}
+	$default_size = 10;
+	
+	$echo = isset($args['echo'])? $args['echo'] : false;
+	
+	$multiple = isset($args['multi'])? ' multiple="multiple"':'';
+	
+	$size = $multiple ? ( isset($args['size']) && intval($args['size'])>0 ? intval($args['size']) : $default_size ) : '';
+	
+	$size = $size ? ' size="'.$size.'"':'';
+    
+    
+    if ( is_string($selected) && count($selected)>0 )
+    {
+	    $selected = array($selected);
+	    
+    }
+    else if ( ! is_array($selected) )
+    {
+	    $selected = array();
+    }
+    
     
     $countries=$wpdb->get_results("SELECT `name`, `alpha3_code` AS `code` FROM $genmap_t_genmap_countries WHERE `active` = 'Y'  ORDER BY `name`");
-
-    $content='<select class="select2" name="country_code" id="genmapper_country_code" data-placeholder="Select a country">';
+	
+	$class = $multiple ? 'multiselect':'select2';
+    
+    $content='
+    <select class="'.$class.'" name="country_code[]" id="genmapper_country_code" data-placeholder="Select a country"'.$multiple.$size.'>';
     foreach ($countries as $c) {
-	    $_selected = $c->code == $selected ? ' selected':'';
+	    $_selected = in_array($c->code , $selected ) ? ' selected':'';
 	    $content.='<option'.$_selected .' value="'.$c->code.'">'.$c->name.'</option>';
 	}
     $content.='</select>';
@@ -512,6 +571,7 @@ function genmapper_fix_node_properties_type($node)
 function ajax_genmapper_nodes2db()
 {
 //	echo('called '.__FUNCTION__);
+	error_log(__FUNCTION__.' post count:'.count($_POST).' ..  nodes count:'.count($_POST['nodes']).' _POST: '. var_export($_POST,1));
 	error_log(__FUNCTION__.' start');
 	
 	
@@ -525,7 +585,7 @@ function ajax_genmapper_nodes2db()
 	}
 	
 	$nodes = isset($_POST['nodes']) && is_array($_POST['nodes']) ? $_POST['nodes']:null;
-//	error_log(var_export($nodes,1));
+	error_log(__FUNCTION__.' nodes: '.var_export($nodes,1));
 
 	genmapper_store_nodes($genmap_id, $nodes);
 	error_log(__FUNCTION__.' end');
@@ -645,18 +705,49 @@ function ajax_genmapper_import_from_db()
 
 
 	//header('Content-type: text/plain');
-	$rows=$wpdb->get_results("SELECT $genmap_fields_string FROM $genmap_t_genmap_nodes  WHERE genmap_id=$genmap_id AND `deleted` IS NULL ORDER BY id");
+	$q="SELECT $genmap_fields_string FROM $genmap_t_genmap_nodes  WHERE genmap_id=$genmap_id AND `deleted` IS NULL ORDER BY id";
+	error_log("Query: ".PHP_EOL.$q.PHP_EOL);
+	$rows=$wpdb->get_results($q);
+	if ( false ) //regi stringes megoldas
+	{
 	foreach ($rows as $r )
 	{
 		$csv.=$eol;
 		$eol=PHP_EOL;
 		foreach ($r as $f )
 		{
-			$csv.=$f.',';
+			$csv.='"'.$f.'"'.',';
 		}
 	}
+	}
+	if ( true ) // uj, a memoriaban csv filet irok pelda alapjan
+	{
+	$fp = fopen('php://temp', 'w+');
+	foreach ($rows as $r) {
+		$fields = array();
+
+		foreach ($r as $f )
+		{
+			$fields[] = $f;
+		}
+	    // Add row to CSV buffer
+	    fputcsv($fp, $fields);
+	}
+	rewind($fp); // Set the pointer back to the start
+
+	$csvhead = $genmap_fields_string.PHP_EOL;
+	$default_node_csv_line = "0,,Default Leader's Name,fullTimeMissionary,,,0,0,0,0,0,0,0,0,0,0,0,0,0,,,,1,action,contact";
+
+	
+	$csv = stream_get_contents($fp); // Fetch the contents of our CSV
+	$csv = count($csv)>0 ? $csv : $default_node_csv_line;
+	
+	
+	
+	fclose($fp); // Close our pointer and free up memory and /tmp space
+	}
 	$answer['genmap']=genmapper_get_genmap($genmap_id);
-	$answer['csv']=$csv;
+	$answer['csv']=$csvhead.$csv;
 	
 	echo json_encode($answer);
 	wp_die();
@@ -719,17 +810,17 @@ function ajax_genmapper_update_genmap_info()
 			.intval($genmap_info['id']));
 			$country_code=get_user_meta(get_current_user_id(), 'genmapper_country_code', true);
 	
-			error_log(__FUNCTION__. ' '. $country_code.' '.var_export($genmap_info,1).' '.var_export($_genmap_info,1));
+			error_log(__FUNCTION__. ' '. var_export($country_code,1).' '.var_export($genmap_info,1).' '.var_export($_genmap_info,1));
 	
 	
 			if ( $_genmap_info && ! $_genmap_info->country_code ) {
 				if ( $country_code ) {
-					$genmap_info['country_code'] = $country_code;
+					$genmap_info['country_code'] = $country_code[0];
 					$update = true;
 				}
 			}
 			
-			if ( $country_code && $country_code == $_genmap_info->country_code ) {
+			if ( count($country_code)>0 &&  in_array($_genmap_info->country_code,$country_code) ) {
 					$update = true;
 			}
 			
@@ -805,16 +896,18 @@ add_action( 'edit_user_profile_update', 'update_extra_profile_fields' );
 
 function update_extra_profile_fields( $user_id ) {
 	
-	$genmapper_country_manager = get_the_author_meta( 'genmapper_country_manager', $user->ID );
+	$genmapper_country_manager = get_the_author_meta( 'genmapper_country_manager', $user_id );
+	$genmapper_country_code = get_the_author_meta( 'genmapper_country_code', $user_id );
 	error_log('$genmapper_country_manager:'.var_export($genmapper_country_manager,1));
+	error_log('$genmapper_country_code:'.var_export($genmapper_country_code,1));
+	error_log('$_POST["genmapper_country_manager"]:'.var_export($_POST['genmapper_country_manager'],1));
 	
 	$disabled = ! $genmapper_country_manager && ! is_super_admin() ? ' disabled':'';
 	//$disabled=false;
     if ( current_user_can( 'edit_user', $user_id ) && ! $disabled )
     {
 	    error_log(__FUNCTION__.' '. var_export($_POST,1));
-	    if ( isset($_POST['genmapper_country_manager']) )
-	    	update_user_meta($user_id, 'genmapper_country_manager',$_POST['genmapper_country_manager']);
+	    update_user_meta($user_id, 'genmapper_country_manager',isset($_POST['genmapper_country_manager']));
 	    if ( isset($_POST['country_code']) )
 	    	update_user_meta($user_id, 'genmapper_country_code',$_POST['country_code']);
 
@@ -832,7 +925,9 @@ add_action('edit_user_profile', 'custom_user_profile_fields');
 function custom_user_profile_fields( $user ) {
 
 $genmapper_country_manager = get_the_author_meta( 'genmapper_country_manager', $user->ID );
+error_log('$genmapper_country_manager:'.var_export($genmapper_country_manager,1));
 $disabled = ! $genmapper_country_manager && ! is_super_admin() ? ' disabled':'';
+$genmapper_country_select_args = array('echo'=>true, 'multi'=> is_super_admin() );
 
 ?>
     <h3>Genmapper settings</h3>
@@ -850,7 +945,7 @@ $disabled = ! $genmapper_country_manager && ! is_super_admin() ? ' disabled':'';
                 <label for="country_code"><?php _e( 'Country' ); ?></label>
             </th>
             <td>
-				<?php genmapper_country_select( get_the_author_meta( 'genmapper_country_code', $user->ID ) , true); ?>
+				<?php genmapper_country_select( get_the_author_meta( 'genmapper_country_code', $user->ID ) , $genmapper_country_select_args); ?>
             </td>
         </tr>
     </table>
@@ -858,6 +953,51 @@ $disabled = ! $genmapper_country_manager && ! is_super_admin() ? ' disabled':'';
 	return;
 }
 
+function genmapper_load_custom_wp_admin_style($hook) {
+        // Load only on ?page=mypluginname
+        if(! in_array($hook , array('user-edit.php','profile.php') ) ) {
+                return;
+        }
+        $usedMultiselect = 'dualistbox';
+		if ( $usedMultiselect == 'multiselect') {
+			wp_register_script( 'multiselect', GENMAPPER_URL . "jquery.multi-select.js" );
+			wp_register_style(  'multiselect_css', GENMAPPER_URL . "multi-select.css", array(), time() );
+		}
+		else if (  $usedMultiselect == 'dualistbox' ) {
+		//<script src="https://cdn.jsdelivr.net/npm/dual-listbox/dist/dual-listbox.min.js"></script>
+		//<link href="https://cdn.jsdelivr.net/npm/dual-listbox/dist/dual-listbox.css">
+			wp_register_script( 'multiselect', "https://cdn.jsdelivr.net/npm/dual-listbox/dist/dual-listbox.min.js" );
+			wp_register_style(  'multiselect_css', "https://cdn.jsdelivr.net/npm/dual-listbox/dist/dual-listbox.css" );
+		}
+		else
+		{
+			wp_die('selected multiselect not know');
+		}
+
+		wp_enqueue_style('multiselect_css');
+		wp_enqueue_script('multiselect' );
+
+		add_action( 'admin_print_scripts', function() {
+    // I'm using NOWDOC notation to allow line breaks and unescaped quotation marks.
+    echo <<<'EOT'
+<script type="text/javascript">
+jQuery(function($){
+    //$('.multiselect').multiSelect({keepOrder:true});
+    document.dualListbox = new DualListbox('.multiselect');
+});
+</script>
+EOT;
+}, PHP_INT_MAX );	
+		
+
+        //wp_enqueue_style( 'custom_wp_admin_css', plugins_url('admin-style.css', __FILE__) );
+}
+add_action( 'admin_enqueue_scripts', 'genmapper_load_custom_wp_admin_style' );
+
+/**
+ * Ha nincs meta akkor megjeleniti az orszagvalaszto overlayt	
+ *	
+*/
 function genmapper_user_country_is_set()
 {
 	if ( !is_user_logged_in() || is_admin() || is_super_admin() )
@@ -866,7 +1006,7 @@ function genmapper_user_country_is_set()
 	}
 	$meta=get_user_meta(get_current_user_id(), 'genmapper_country_code', true);
 	
-	if ( ! $meta )
+	if ( ! $meta ||  (is_array($meta) && count($meta)==0 ) )
 	{
 	?>
 	<div id="genmapoverlay">
@@ -914,9 +1054,7 @@ function genmapper_user_country_is_set()
 	}
 }
 
-add_action( 'wp_print_footer_scripts', 'genmapper_user_country_is_set' );
-//add_action( 'wp_print_scripts', 'testfunc' );
-
+//moved to shortcode requirements add_action( 'wp_print_footer_scripts', 'genmapper_user_country_is_set' );
 
 function ajax_genmapper_user_country_selected() {
 	
@@ -925,7 +1063,7 @@ function ajax_genmapper_user_country_selected() {
 	if ( $choosed_country )
 	{
 			$meta=get_user_meta(get_current_user_id(), 'genmapper_country_code', true);
-			if ( $meta == '' )
+			if ( $meta == '' || (is_array($meta) && count($meta)==0 ) )
 			{
 		    	update_user_meta(get_current_user_id(), 'genmapper_country_code',$choosed_country);
 				echo 'country_set';
