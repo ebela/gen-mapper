@@ -22,7 +22,7 @@ function store_referer_in_login_form() {
  */
 
 function redirect_after_login( $redirect_to, $request, $user ) {
-	if ( isset($_POST['redirect_to2']) ) {
+	if (false && isset($_POST['redirect_to2']) ) {
 		wp_safe_redirect( esc_url_raw( $_POST['redirect_to2'] ) );
 		die();
 	}
