@@ -55,6 +55,7 @@ SELECT genmap_id
 , sum( elementGive ) AS `Give`
 , sum( elementLordsSupper ) AS `Lord's supper`
 , sum( elementBaptism ) AS `Baptism`
+, max( `wp_genmap_nodes`.last_mod_date ) AS `last_mod_date`
 
 FROM `wp_genmap_nodes` 
 
@@ -121,6 +122,8 @@ SELECT
 , sum( `Give` )/ ( sum(`# of MD`) / 100 ) AS `Give`
 , sum( `Lord's supper` )/ ( sum(`# of MD`) / 100 ) AS  `Lord's supper`
 , sum( `Baptism` )/ ( sum(`# of MD`) / 100 ) AS `Baptism`
+, max( `last_mod_date` ) AS `last_mod_date`
+
 
 FROM `wp_genmap_info` 
 
@@ -128,4 +131,6 @@ GROUP BY `country_code`
 
 ---------------------------------------------
 
+
+ALTER TABLE `wp_genmap_nodes` ADD INDEX(`last_mod_date`);
 
