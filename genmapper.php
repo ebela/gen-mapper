@@ -606,12 +606,19 @@ function genmapper_store_nodes($genmap_id, $nodes) {
 		error_log(__FUNCTION__.' storing nodes '.var_export($nodes,1));
 		
 		//shadow copy of nodes.. maybe not needed..
-		$_nodes = $nodes;
+		//azaz "repair" of array ugymond
+		$_nodes = array();
+		foreach ($nodes as $n )
+		{
+			$idx = intval($n['id']);
+			$_nodes[$idx] = $n;
+		}
+		error_log(__FUNCTION__.' "repaired" nodes '.var_export($_nodes,1));
 
-		foreach ($nodes as $i=>$n )
+		foreach ($_nodes as $n )
 		{
 			$generation=0;
-			$_i=$i;$safetyexitcounter=100000;
+			$_i=$n['id'];$safetyexitcounter=100000;
 			while ( $_nodes[$_i]['parentId']!='' && $safetyexitcounter-- ) { 
 				$generation++; 
 				$_i=$_nodes[$_i]['parentId']; 
