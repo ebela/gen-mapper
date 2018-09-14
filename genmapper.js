@@ -694,6 +694,10 @@ class GenMapper {
   }
 
   importFile () {
+	  if ( ! GenMapperBase.is_user_logged_in  ) {
+		alert('You must log in to import genmap.');
+	  	return false;
+	  }
     this.importFileFromInput('file-input', (filedata, filename) => {
 	  console.log('filename', filename, 'filedata', filedata);
       const parsedCsv = this.parseAndValidateCsv(filedata, filename)
@@ -922,7 +926,7 @@ class GenMapper {
     })
     this.editParentElement = document.getElementById('edit-parent')
   }
-  
+ 
   
   sendNodesToDb (nodes) {
 	var $ = window.jQuery;
@@ -933,9 +937,14 @@ class GenMapper {
 	}).done(function(_data,status,jqxhr) {
 		var data = $.parseJSON( _data) || _data;
 		console.log('sendNodesToDb DONE', data);
-		that.genmap=data.genmap;
-		that.addNewGenmapToListbox(data.genmap);
-		that.updateGenmapperInfoForm();
+		if ( 'error' in data && data.error ) {
+			alert(data.message);	
+		}
+		else {
+			that.genmap=data.genmap;
+			that.addNewGenmapToListbox(data.genmap);
+			that.updateGenmapperInfoForm();
+		}
 		
 	});
 

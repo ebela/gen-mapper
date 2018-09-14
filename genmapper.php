@@ -81,7 +81,8 @@ function genmapper_init()
 			'ajaxurl' => admin_url( 'admin-ajax.php'), 
 			'baseurl' => GENMAPPER_URL, 
 			'themeurl' => GENMAPPER_URL.''.GENMAPPER_THEME.'/', 
-			'default_country_code' => 'DEFAULTCOUNTRYCODE'
+			'default_country_code' => 'DEFAULTCOUNTRYCODE',
+			'is_user_logged_in' => is_user_logged_in()
 		) );
 	
 
@@ -578,7 +579,7 @@ function genmapper_fix_node_properties_type($node)
 function ajax_genmapper_nodes2db()
 {
 //	echo('called '.__FUNCTION__);
-	error_log(__FUNCTION__.' post count:'.count($_POST).' ..  nodes count:'.count($_POST['nodes']).' _POST: '. var_export($_POST,1));
+	error_log(__FUNCTION__.' post count:'.count($_POST).' ..  nodes count:'.count($_POST['nodes']).' _POST: '. var_export($_POST,1).'  isuser '.PHP_EOL.var_export(is_user_logged_in(),1));
 	error_log(__FUNCTION__.' start');
 	
 	if ( is_user_logged_in() ) {
