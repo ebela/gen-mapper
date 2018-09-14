@@ -470,7 +470,9 @@ function genmapper_add_node($nodeData, $genmap_id=null)
 	//hozzaadas elott ellenorizzuk hogy volt-e mar ilyen node, ha igen, akkor azt toroljuk
 	if (  genmapper_is_node_exists($nodeData, $genmap_id) )
 	{
+		$nodeData['node_type']='revision';
 		genmapper_remove_node($nodeData, $genmap_id);
+		unset($nodeData['node_type']);
 	}
 
 	$nodeData = genmapper_fix_node_properties_type($nodeData);
@@ -526,11 +528,16 @@ function genmapper_remove_node($nodeData, $genmap_id=null)
 	//elvileg a root node nem torolheto.
 	if ( $nodeData['id'] == 0 ) $nodeData['parentId'] = null;
 
+	$sqlFields = array( 'deleted'=> current_time('mysql', 1) );
+	
+	if ( isset($nodeData['node_type']) ) {
+		$sqlFields['node_type']=$nodeData['node_type'];
+	}
+
 	error_log('deleting node '.var_export($nodeData,1 ));  
 	$updated_rowscount = $wpdb->update( 
 		$genmap_t_genmap_nodes, 
-		array( 'deleted'=> current_time('mysql', 1) 
-		),
+		$sqlFields,
 		//strtotime("now") ), //date('Y-m-d H:i:s') ) , //''.current_time('mysql', 1)).'', 
 		array( 'genmap_id'=>$genmap_id, 
 			   'id' => $nodeData['id'], 
