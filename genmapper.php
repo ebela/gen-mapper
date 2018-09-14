@@ -581,27 +581,37 @@ function ajax_genmapper_nodes2db()
 	error_log(__FUNCTION__.' post count:'.count($_POST).' ..  nodes count:'.count($_POST['nodes']).' _POST: '. var_export($_POST,1));
 	error_log(__FUNCTION__.' start');
 	
+	if ( is_user_logged_in() ) {
+		
+		//uj genmap letrehozasa
+		
+		$genmap_id = genmapper_create_genmap();
+		if ( ! $genmap_id )
+		{
+			echo 'ERROR: cant create genmap';
+			wp_die();
+		}
+		
+		$nodes = isset($_POST['nodes']) && is_array($_POST['nodes']) ? $_POST['nodes']:null;
+		error_log(__FUNCTION__.' nodes: '.var_export($nodes,1));
 	
-	//uj genmap letrehozasa
+		genmapper_store_nodes($genmap_id, $nodes);
+		error_log(__FUNCTION__.' end');
 	
-	$genmap_id = genmapper_create_genmap();
-	if ( ! $genmap_id )
-	{
-		echo 'ERROR: cant create genmap';
-		wp_die();
+		$answer['genmap']=genmapper_get_genmap($genmap_id);
+		$answer['message']='Uploaded nodes stored in db';	
+	}
+	else {
+		$answer['error']=true;
+		$answer['message']='You must log in to import genmap.';	
 	}
 	
-	$nodes = isset($_POST['nodes']) && is_array($_POST['nodes']) ? $_POST['nodes']:null;
-	error_log(__FUNCTION__.' nodes: '.var_export($nodes,1));
 
-	genmapper_store_nodes($genmap_id, $nodes);
-	error_log(__FUNCTION__.' end');
-
-	$answer['genmap']=genmapper_get_genmap($genmap_id);
-	$answer['message']='Uploaded nodes stored in db';	
 	echo json_encode($answer);
 
 	wp_die();
+
+
 }
 
 function genmapper_store_nodes($genmap_id, $nodes) {
