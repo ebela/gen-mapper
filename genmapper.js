@@ -695,8 +695,8 @@ class GenMapper {
 
   importFile () {
 	  if ( ! GenMapperBase.is_user_logged_in  ) {
-		alert('You must log in to import genmap.');
-	  	return false;
+		//alert('You must login first to store genmap in db.');
+	  	//return false;
 	  }
     this.importFileFromInput('file-input', (filedata, filename) => {
 	  console.log('filename', filename, 'filedata', filedata);
@@ -1114,6 +1114,7 @@ class GenMapper {
 		}
 		else if ( data.result == 3 ) { /* genmap created */
 			if ( data.genmap_info ) {
+				that.genmap.id = data.genmap_info.id;
 				that.addNewGenmapToListbox(data.genmap_info);
             }
 		}
