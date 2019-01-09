@@ -76,12 +76,27 @@ function genmapper_init()
 	wp_register_script( 'FileSaver', GENMAPPER_URL . "FileSaver.min.js" );
 	wp_register_script( 'xlsx', GENMAPPER_URL . "xlsx.core.min.js" );
 
+
+	$genmapper_default_country_code = get_user_meta( get_current_user_id(), 'genmapper_country_code', true );
+	
+	if ( is_array($genmapper_default_country_code) && count($genmapper_default_country_code)>0 ) {
+		$genmapper_default_country_code = $genmapper_default_country_code[0];
+	}
+	else if ( is_string($genmapper_default_country_code) && count($genmapper_default_country_code)>1 ) {
+	}
+	else {
+		$genmapper_default_country_code = 'TODODEFAULTCOUNTRYCODE';
+	}
+
+	$genmapper_default_country_code = is_array($genmapper_default_country_code)?$genmapper_default_country_code[0]:$genmapper_default_country_code;
+
+
 	wp_localize_script( 'genmapper_template_js', 'GenMapperBase', 
 		array( 
 			'ajaxurl' => admin_url( 'admin-ajax.php'), 
 			'baseurl' => GENMAPPER_URL, 
 			'themeurl' => GENMAPPER_URL.''.GENMAPPER_THEME.'/', 
-			'default_country_code' => 'DEFAULTCOUNTRYCODE',
+			'default_country_code' => $genmapper_default_country_code,
 			'is_user_logged_in' => is_user_logged_in()
 		) );
 	
@@ -273,6 +288,7 @@ padding: 6px 10px;
 	</li>
 	<li>
 	<input type="button" value="save" onclick="genmapper.saveInfoOnClick();" >
+	<input type="button" value="cancel" onclick="genmapper.cancelInfoOnClick();" >
 	<input type="button" value="delete" onclick="genmapper.deleteGenmapOnClick();" >
 	</li>
 	</ul>
@@ -333,8 +349,8 @@ function genmapper_genmap_select()
 	$where = '';
 	if ( ! is_super_admin() )
 	{
-		$is_country_manager = get_the_author_meta( 'genmapper_country_manager', $user_id );
-		$genmapper_country_code = get_the_author_meta( 'genmapper_country_code', $user_id );
+		$is_country_manager = get_user_meta( $user_id, 'genmapper_country_manager', true );
+		$genmapper_country_code = get_user_meta( $user_id, 'genmapper_country_code', true );
 
 		if ( $is_country_manager  ) {
 			$where=" AND `country_code` IN ('".implode("','", $genmapper_country_code)."') ";
@@ -412,6 +428,23 @@ function genmapper_create_genmap($gi = null)
 	
 	$name = isset($gi['name']) && $gi['name'] ? $gi['name'] : 'Genmap - '.date('Y.m.d. H:i:s');
 	$country_code=isset($gi['country_code']) && $gi['country_code'] ? $gi['country_code'] : get_user_meta(get_current_user_id(), 'genmapper_country_code', true);
+	
+	
+	$default_country_code =  get_user_meta(get_current_user_id(), 'genmapper_country_code', true);
+	if ( ! is_super_admin() ) {
+		
+		if ( is_array($default_country_code) && in_array($country_code, $default_country_code ) ) {
+			$country_code = $default_country_code[0];
+		}
+		else if ( is_string($default_country_code) && $default_country_code!=$country_code ) {
+			$country_code = $default_country_code;
+		}
+		else {
+			error_log("cant create genmap!!! ".var_export($gi,1).PHP_EOL.'country code'.var_export($country_code,1).PHP_EOL.'default country code'.var_export($default_country_code,1));
+			wp_die('***');
+		}
+	}
+	
 
 	
 	$data = is_array($gi) ? $gi : array();
@@ -787,7 +820,7 @@ function ajax_genmapper_update_genmap_info()
 	if ( isset($_POST['genmap_info']) ) {
 //		parse_str($_POST['genmap_info'],$genmap_info);
 		$genmap_info = $_POST['genmap_info'];
-		if ( $genmap_info['deleted']=='') unset($genmap_info['deleted']);
+		if ( isset($genmap_info['deleted']) && $genmap_info['deleted']=='') unset($genmap_info['deleted']);
 	}
 	error_log(__FUNCTION__ .' posted genmap info ' .var_export($genmap_info,1));
 	
@@ -921,8 +954,8 @@ add_action( 'edit_user_profile_update', 'update_extra_profile_fields' );
 
 function update_extra_profile_fields( $user_id ) {
 	
-	$genmapper_country_manager = get_the_author_meta( 'genmapper_country_manager', $user_id );
-	$genmapper_country_code = get_the_author_meta( 'genmapper_country_code', $user_id );
+	$genmapper_country_manager = get_user_meta( $user_id,  'genmapper_country_manager', true);
+	$genmapper_country_code = get_user_meta( $user_id, 'genmapper_country_code', true );
 	error_log('$genmapper_country_manager:'.var_export($genmapper_country_manager,1));
 	error_log('$genmapper_country_code:'.var_export($genmapper_country_code,1));
 	error_log('$_POST["genmapper_country_manager"]:'.var_export($_POST['genmapper_country_manager'],1));
@@ -949,7 +982,7 @@ add_action('edit_user_profile', 'custom_user_profile_fields');
 // @param WP_User $user
 function custom_user_profile_fields( $user ) {
 
-$genmapper_country_manager = get_the_author_meta( 'genmapper_country_manager', $user->ID );
+$genmapper_country_manager = get_user_meta( $user->ID, 'genmapper_country_manager', true );
 error_log('$genmapper_country_manager:'.var_export($genmapper_country_manager,1));
 $disabled = ! $genmapper_country_manager && ! is_super_admin() ? ' disabled':'';
 $genmapper_country_select_args = array('echo'=>true, 'multi'=> is_super_admin() );
@@ -970,7 +1003,7 @@ $genmapper_country_select_args = array('echo'=>true, 'multi'=> is_super_admin() 
                 <label for="country_code"><?php _e( 'Country' ); ?></label>
             </th>
             <td>
-				<?php genmapper_country_select( get_the_author_meta( 'genmapper_country_code', $user->ID ) , $genmapper_country_select_args); ?>
+				<?php genmapper_country_select( get_user_meta( $user->ID, 'genmapper_country_code', true ) , $genmapper_country_select_args); ?>
             </td>
         </tr>
     </table>

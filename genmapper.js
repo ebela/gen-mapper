@@ -32,7 +32,7 @@ class GenMapper {
       this.language = 'en'
     }
     this.baseurl = GenMapperBase.baseurl || '/wp-content/plugins/gen-mapper' // '..' 
-    this.genmap = {id:0,name:i18next.t('menu.defaultProjectName')/*'Untitled Genmap'*/, country_code: 'USA' }		//id:0 jelzi, hogy nincs mentve
+    this.genmap = {id:0,name:i18next.t('menu.defaultProjectName')/*'Untitled Genmap'*/, country_code: window.GenMapperBase.default_country_code || 'NOTSET' }		//id:0 jelzi, hogy nincs mentve
 
     this.mainEl = 'genmap-main'
     this.mainsvgEl = 'genmap-main-svg'
@@ -1053,6 +1053,11 @@ class GenMapper {
   
   saveInfoOnClick() {
 	this.sendGenmapChangeEvent();
+  }
+
+  cancelInfoOnClick() {
+	var $ = window.jQuery;
+	$('#genmapper_info-editor').hide();
   }
 
   deleteGenmapOnClick() {
