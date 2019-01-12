@@ -1,4 +1,4 @@
-window.console.log("genmapper.js first line");
+window.console.log("genmapper.js executing");
 window.console.log("GenMapperBase", GenMapperBase);
 
 function genmapper_gmap_init()
@@ -961,8 +961,18 @@ class GenMapper {
   
   sendPost(action, data, receivedCallback) {
 	if ( ! this.genmap.id ) {
-		console.log('genmap not saved, not send any event to backend');
-		return false;
+		if ( GenMapperBase.is_user_logged_in ) {
+			//ha be van lepve a felhasznalo akkor megprobaljuk letrehozni a genmapot
+			this.sendGenmapChangeEvent();
+			//console.log('after send genmap change this.genmap.id', this.genmap.id);
+		}
+		if ( ! this.genmap.id ) {
+			console.log('genmap not saved, not send any event to backend');
+			return false;
+		}
+		else {
+			console.log('new genmap created with this genmap id', this.genmap.id);
+		}
 	}
 	var $ = window.jQuery;
 	
@@ -970,7 +980,7 @@ class GenMapper {
 		'action' : action,
 		'data': ( data )
 	}).done(function(receivedData,status,jqxhr) { 
-		console.log('data posted'); 
+		//console.log('data posted'); 
 		if (typeof receivedCallback == 'function' ) {
 			receivedCallback(receivedData, status);
 		}
@@ -1100,10 +1110,11 @@ class GenMapper {
 	
 //	console.log('sendGenmapChangeEvent current genmapper info ', this.genmap);
 //	console.log('sendGenmapChangeEvent current genmapper data ', this.data);
-//	console.log('sendGenmapChangeEvent ', data);
+//	console.log('sendGenmapChangeEvent start post ', data);
 	
 
-	$.post( GenMapperBase.ajaxurl , data).done(function(_data,status,jqxhr) {
+	var footest  = 1;
+	$.post( { url: GenMapperBase.ajaxurl , data:data, async:false }).done(function(_data,status,jqxhr) {
 		var data = $.parseJSON( _data) || _data;
 		console.log('genmap info update done', data);
 		if ( data.result == 1 ) {  /* genmap updated */
@@ -1125,6 +1136,7 @@ class GenMapper {
 		}
 	});
 	$('#genmapper_info-editor').hide();
+	//console.log('sendGenmapChangeEvent end', data);
 	  
   }
 
