@@ -101,7 +101,8 @@ function genmapper_init()
 		) );
 	
 
-	wp_register_script( 'genmapper_google_api-async-defer', "https://maps.googleapis.com/maps/api/js?key=".GENMAPPER_MAP_GOOGLE_API_KEY."&callback=genmapper_gmap_init&libraries=places" );
+	$http = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https':'http';
+	wp_register_script( 'genmapper_google_api-async-defer', "$http://maps.googleapis.com/maps/api/js?key=".GENMAPPER_MAP_GOOGLE_API_KEY."&callback=genmapper_gmap_init&libraries=places" );
 	
 
 
@@ -431,6 +432,8 @@ function genmapper_create_genmap($gi = null)
 	
 	
 	$default_country_code =  get_user_meta(get_current_user_id(), 'genmapper_country_code', true);
+	if ( is_array($default_country_code) && count($default_country_code)>0 ) $default_country_code = $default_country_code[0];
+	 
 	if ( ! is_super_admin() ) {
 		
 		if ( is_array($default_country_code) && in_array($country_code, $default_country_code ) ) {
@@ -481,7 +484,8 @@ function genmapper_is_node_exists($nodeData, $genmap_id=null)
 	}
 
 
-	$whereIdAndParentId = "`id` = ".$nodeData['id']." AND parentId ". ( $nodeData['id'] == 0 ? ' IS NULL ' : ' = '.$nodeData['parentId'] );
+//	$whereIdAndParentId = "`id` = ".$nodeData['id']." AND parentId ". ( $nodeData['id'] == 0 ? ' IS NULL ' : ' = '.$nodeData['parentId'] );
+	$whereIdAndParentId = "`id` = ".$nodeData['id']." ";
 	$node_exists = $wpdb->get_var( "SELECT COUNT(*) FROM $genmap_t_genmap_nodes  WHERE $whereIdAndParentId AND genmap_id=$genmap_id AND `deleted` IS NULL" );
 	//error_log(__FUNCTION__.' node exists result: '.var_export($node_exists,1).'  return value: '.var_export($node_exists == 1,1));
 	error_log(__FUNCTION__.' '.$wpdb->last_query);
@@ -575,7 +579,7 @@ function genmapper_remove_node($nodeData, $genmap_id=null)
 		//strtotime("now") ), //date('Y-m-d H:i:s') ) , //''.current_time('mysql', 1)).'', 
 		array( 'genmap_id'=>$genmap_id, 
 			   'id' => $nodeData['id'], 
-			   'parentId' => $nodeData['parentId'],
+			   //'parentId' => $nodeData['parentId'],
 			   'deleted'=>null 
 		) ,
 		array( '%s' )

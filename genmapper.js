@@ -9,7 +9,6 @@ function genmapper_gmap_init()
 	var googleMapAutocomplete = new google.maps.places.Autocomplete(googleMapInput);
 }
  
-//alert('sasa');
 class GenMapper {
   // GenMapper
   // App for mapping generations of simple churches
@@ -256,6 +255,35 @@ class GenMapper {
     const tmp = d3.select('#intro')
     if (tmp.style('display') !== 'none') { tmp.style('display', 'none') } else { tmp.style('display', 'block') }
   }
+  
+  collectPotentialParents(node) {
+	  let potentialParents = [];
+	  let descendants = node.descendants();
+	  this.nodes.each(function(n){
+		  if ( ! descendants.includes(n) ) {
+			  potentialParents.push(n);
+		  }
+	  } ); 
+	  return potentialParents;
+  }
+  
+  
+  getPotentialParentsHtmlSelect( node ) {
+	  let potential = this.collectPotentialParents(node);
+	  
+	  let select = '<select id="parentChangeTo">';
+	  potential.forEach(function(n) {
+		select+='<option value="'+n.data["id"]+'"'+(n.data["id"]==node.data["parentId"]?" selected":"")+'>';
+		select+=n.data["name"]+'['+n.data["id"]+']';
+		select+='</option>';  
+	  });
+	  select+='</select>';
+	  return select;
+	  
+//<select><option>1</option><option>2</option>	  
+  }
+  
+  
 
   popupEditGroupModal (d) {
     this.editGroupElement.style.display = 'block'
@@ -274,7 +302,9 @@ class GenMapper {
     // select first element
     this.editFieldElements[Object.keys(this.editFieldElements)[0]].select()
 
-    this.editParentElement.innerHTML = d.parent ? d.parent.data.name : 'N/A'
+//    this.editParentElement.innerHTML = d.parent ? d.parent.data.name : 'N/A';
+    this.editParentElement.innerHTML = d.parent ? this.getPotentialParentsHtmlSelect(d) : 'N/A';
+
     const groupData = d.data
     const group = d
     d3.select('#'+this.editsubmitEl).on('click', () => { this.editGroup(groupData) })
@@ -284,6 +314,7 @@ class GenMapper {
   }
 
   editGroup (groupData) {
+	var $ = window.jQuery;
     template.fields.forEach((field) => {
       if (field.type === 'text') {
         groupData[field.header] = this.editFieldElements[field.header].value
@@ -297,6 +328,19 @@ class GenMapper {
         groupData[field.header] = this.editFieldElements[field.header].checked
       }
     })
+
+	let changeParentToId = $('#parentChangeTo').val();
+	
+	let descendantsModified = false;
+	if ( groupData["parentId"] != changeParentToId ) {
+		groupData["parentId"] = changeParentToId;
+		let i=0;
+		for ( i=0; i<this.data.length && genmapper.data[i].id!=groupData["id"]; i++) ;
+		this.data[i].parentId = changeParentToId;
+		this.data[i].generation = this.data[i].depth+1;
+		descendantsModified = true;
+		
+	}
     
     
     console.log('editGroup', groupData, this.genmap );
@@ -1108,12 +1152,6 @@ class GenMapper {
 	
 	var that=this;
 	
-//	console.log('sendGenmapChangeEvent current genmapper info ', this.genmap);
-//	console.log('sendGenmapChangeEvent current genmapper data ', this.data);
-//	console.log('sendGenmapChangeEvent start post ', data);
-	
-
-	var footest  = 1;
 	$.post( { url: GenMapperBase.ajaxurl , data:data, async:false }).done(function(_data,status,jqxhr) {
 		var data = $.parseJSON( _data) || _data;
 		console.log('genmap info update done', data);
@@ -1136,8 +1174,6 @@ class GenMapper {
 		}
 	});
 	$('#genmapper_info-editor').hide();
-	//console.log('sendGenmapChangeEvent end', data);
-	  
   }
 
   
