@@ -43,6 +43,8 @@ class GenMapper {
     this.leftmenuEl = 'left-menu'
     this.alertmessagetextEl = 'alert-message-text'
     
+    this.nameMaxDisplayLenght = 15;
+    
     
 
     this.margin = {top: 50, right: 30, bottom: 50, left: 30}
@@ -331,23 +333,36 @@ class GenMapper {
 
 	let changeParentToId = $('#parentChangeTo').val();
 	
-	let descendantsModified = false;
-	if ( groupData["parentId"] != changeParentToId ) {
+	let parentChanged = false;
+	if ( "parentId" in groupData && groupData["parentId"] != changeParentToId ) {
 		groupData["parentId"] = changeParentToId;
 		let i=0;
 		for ( i=0; i<this.data.length && genmapper.data[i].id!=groupData["id"]; i++) ;
 		this.data[i].parentId = changeParentToId;
-		this.data[i].generation = this.data[i].depth+1;
-		descendantsModified = true;
-		
+		parentChanged = true;
 	}
     
     
+    this.editGroupElement.style.display = 'none'
+    this.redraw(template)
+    
+    if ( parentChanged ) {
+	    //az ujrarajzolas utan megkeressuk a modositott node-ot
+		let node = _.filter(this.nodes.descendants(), function(o) { return o.data.id==groupData["id"];})[0];
+		console.log('parent node changed of this node', node);
+		console.log('and a descendants',  );
+		//frissitjuk a generation mezot 
+		groupData["generation"] = node.depth+1;
+		let descendants = _.filter(node.descendants(), function(o) { return o.id!=groupData["id"];});
+		groupData["_descendants"]=descendants.map(function(a){ return {nodeId:a.id, generation:a.depth+1};});
+		
+	    
+    }
+
+
     console.log('editGroup', groupData, this.genmap );
     this.sendEvent({cmd:'editNode', nodeData:groupData, genmap:this.genmap });
     
-    this.editGroupElement.style.display = 'none'
-    this.redraw(template)
   }
 
   printMap (printType) {
@@ -497,6 +512,8 @@ class GenMapper {
 
     // UPDATE including NEW
     const nodeWithNew = node.merge(newGroup)
+    nodeWithNew.attr('id',function(d) { return "node--id-"+d.data.id; });
+
     nodeWithNew.attr('class', function (d) {
       return 'node' + (d.data.active ? ' node--active' : ' node--inactive')
     })
@@ -592,7 +609,14 @@ class GenMapper {
   }
 
   updateSvgForFields (field, element) {
-    element.text(function (d) { return d.data[field.header] })
+	let nameMaxDisplayLenght=this.nameMaxDisplayLenght;
+    element.text(function (d) { 
+	    let r=d.data[field.header];
+	    let  nameMaxDisplayLenght = 15;
+	    if ( field.header=='name'&& r.length>nameMaxDisplayLenght) {
+			 r=r.substr(0, nameMaxDisplayLenght)+"..."; 
+		}
+		return r; });
     if (field.svg.type === 'image') {
       element.style('display', function (d) { return d.data[field.header] ? 'block' : 'none' })
     }
@@ -994,7 +1018,7 @@ class GenMapper {
 
   }
 
-  sendEvent(data) {
+  sendEvent (data) {
 	  this.sendPost('genmapper_send_event', data);
   }
   
@@ -1118,7 +1142,7 @@ class GenMapper {
 	this.sendGenmapChangeEvent({delete:true});
   }
   
-  addNewGenmapToListbox(genmap_info) {
+  addNewGenmapToListbox (genmap_info) {
 	var $ = window.jQuery;
 	var $select = $("#genmapper_info-content select");
 	$('option:first',$select)
@@ -1131,7 +1155,7 @@ class GenMapper {
   }
 
 
-  sendGenmapChangeEvent(moredata)
+  sendGenmapChangeEvent (moredata)
   {
 	var $ = window.jQuery;
 	  

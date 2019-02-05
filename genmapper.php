@@ -436,7 +436,10 @@ function genmapper_create_genmap($gi = null)
 	 
 	if ( ! is_super_admin() ) {
 		
-		if ( is_array($default_country_code) && in_array($country_code, $default_country_code ) ) {
+		if ( $default_country_code = $country_code ) {
+			error_log("country code = default country code. OK");
+		}
+		else if ( is_array($default_country_code) && in_array($country_code, $default_country_code ) ) {
 			$country_code = $default_country_code[0];
 		}
 		else if ( is_string($default_country_code) && $default_country_code!=$country_code ) {
@@ -447,8 +450,6 @@ function genmapper_create_genmap($gi = null)
 			wp_die('***');
 		}
 	}
-	
-
 	
 	$data = is_array($gi) ? $gi : array();
 	$data['name'] = $name;
@@ -485,8 +486,8 @@ function genmapper_is_node_exists($nodeData, $genmap_id=null)
 
 
 //	$whereIdAndParentId = "`id` = ".$nodeData['id']." AND parentId ". ( $nodeData['id'] == 0 ? ' IS NULL ' : ' = '.$nodeData['parentId'] );
-	$whereIdAndParentId = "`id` = ".$nodeData['id']." ";
-	$node_exists = $wpdb->get_var( "SELECT COUNT(*) FROM $genmap_t_genmap_nodes  WHERE $whereIdAndParentId AND genmap_id=$genmap_id AND `deleted` IS NULL" );
+	$whereIdAndParentId = "`id` = ".intval($nodeData['id'])." ";
+	$node_exists = $wpdb->get_var( "SELECT COUNT(*) FROM $genmap_t_genmap_nodes  WHERE $whereIdAndParentId AND node_type='node' AND genmap_id=$genmap_id AND `deleted` IS NULL" );
 	//error_log(__FUNCTION__.' node exists result: '.var_export($node_exists,1).'  return value: '.var_export($node_exists == 1,1));
 	error_log(__FUNCTION__.' '.$wpdb->last_query);
 	return  $node_exists > 0;
@@ -522,21 +523,25 @@ function genmapper_add_node($nodeData, $genmap_id=null)
 		$nodeData['genmap_id'] = $genmap_id;
 	}
 	
-	error_log(__FUNCTION__.' -- '. var_export($nodeData,1));
-
-/**
-			$data = $n;
-			$data['genmap_id']=$genmap_id;
-			$data['user_id']=get_current_user_id();
-			$data['last_mod_user_id']=get_current_user_id();
-			$data['last_mod_date']=date('Y.m.d H:i:s');
-			if ( $data['id'] == 0 ) $data['parentId'] = null;
-			if ( $data['date'] =='0000-00-00 00:00:00' ) $data['date'] = null;
-			
-			$wpdb->insert($table_name, $data );
-
-*/
-
+	error_log(__FUNCTION__.' nodeData -- '. var_export($nodeData,1));
+	
+	//ha van a generaciot frissito node tomb akkor azt feldolgozzuk.
+	if ( isset($nodeData['_descendants']) ) {
+		$nodesToUpdate = $nodeData['_descendants'];
+		
+	error_log(__FUNCTION__.' _descendants -- '. var_export($nodesToUpdate,1));
+		
+		unset($nodeData['_descendants']);
+		foreach ($nodesToUpdate as $n ) {
+			$wpdb->update($genmap_t_genmap_nodes, 
+				array('generation'=>$n['generation']), //values
+				array('genmap_id'=>$genmap_id, 'id'=>$n['nodeId'], 'node_type'=>'node', ), //where
+				array('%d'), //format
+				array('%d', '%d', '%s') //where format
+				 );
+		}
+		
+	}
 	$wpdb->insert($genmap_t_genmap_nodes, $nodeData );
 	error_log(__FUNCTION__.' '.$wpdb->last_query);
 	return $wpdb->insert_id;
@@ -687,7 +692,7 @@ function genmapper_store_nodes($genmap_id, $nodes) {
 function ajax_genmapper_send_event()
 {
 	global $wpdb;
-	
+	//TODO: ellenorizni a nullas genmap_id-t!!!
 	error_log(__FUNCTION__.' start');
 
 	$data = isset($_POST['data']) && is_array($_POST['data']) ? $_POST['data']:null;
