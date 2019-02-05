@@ -1,13 +1,5 @@
 window.console.log("genmapper.js executing");
 window.console.log("GenMapperBase", GenMapperBase);
-
-function genmapper_gmap_init()
-{
-	console.log('gmap initialized');
-	var fieldname="edit-place";
-	var googleMapInput =  document.getElementById(fieldname);
-	var googleMapAutocomplete = new google.maps.places.Autocomplete(googleMapInput);
-}
  
 class GenMapper {
   // GenMapper
@@ -43,7 +35,7 @@ class GenMapper {
     this.leftmenuEl = 'left-menu'
     this.alertmessagetextEl = 'alert-message-text'
     
-    this.nameMaxDisplayLenght = 15;
+    this.nameMaxDisplayLenght = 14;
     
     
 
@@ -612,9 +604,8 @@ class GenMapper {
 	let nameMaxDisplayLenght=this.nameMaxDisplayLenght;
     element.text(function (d) { 
 	    let r=d.data[field.header];
-	    let  nameMaxDisplayLenght = 15;
 	    if ( field.header=='name'&& r.length>nameMaxDisplayLenght) {
-			 r=r.substr(0, nameMaxDisplayLenght)+"..."; 
+			 r=r.substr(0, nameMaxDisplayLenght)+"…"; 
 		}
 		return r; });
     if (field.svg.type === 'image') {

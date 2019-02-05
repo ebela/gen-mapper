@@ -1161,11 +1161,24 @@ function genmapper_footer_scripts () { ?>
 			  console.log( "Triggered ajaxComplete handler." );
 			  $('#genmapper_inprogress').hide();
 			});	
-			
 			$('#edit-date').datepicker();
 		} );
+
+
+	function genmapper_gmap_init()
+	{
+		console.log('gmap initialized');
+		var fieldname="edit-place";
+		var googleMapInput =  document.getElementById(fieldname);
+		var googleMapAutocomplete = new google.maps.places.Autocomplete(googleMapInput);
+		genmapper.nameMaxDisplayLenght = 14;
+		genmapper.redraw(template);
+		console.log(template);
+	}
+
 	</script>
 
 <?php } 
 
 add_action( 'wp_print_footer_scripts', 'genmapper_footer_scripts');
+
