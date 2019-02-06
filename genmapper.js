@@ -604,7 +604,7 @@ class GenMapper {
 	let nameMaxDisplayLenght=this.nameMaxDisplayLenght;
     element.text(function (d) { 
 	    let r=d.data[field.header];
-	    if ( field.header=='name'&& r.length>nameMaxDisplayLenght) {
+	    if ( r.length>nameMaxDisplayLenght) {
 			 r=r.substr(0, nameMaxDisplayLenght)+"…"; 
 		}
 		return r; });

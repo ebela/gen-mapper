@@ -1164,6 +1164,13 @@ function genmapper_footer_scripts () { ?>
 			$('#edit-date').datepicker();
 		} );
 
+	</script>
+
+<?php } 
+
+
+function genmapper_head_scripts () { ?>
+	<script language="javascript" type="text/javascript">
 
 	function genmapper_gmap_init()
 	{
@@ -1182,3 +1189,4 @@ function genmapper_footer_scripts () { ?>
 
 add_action( 'wp_print_footer_scripts', 'genmapper_footer_scripts');
 
+add_action( 'wp_head', 'genmapper_head_scripts' );
