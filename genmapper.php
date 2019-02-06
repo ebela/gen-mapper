@@ -895,6 +895,7 @@ function ajax_genmapper_update_genmap_info()
 	
 		if ( isset($_POST['delete']) && $_POST['delete'] == 'true' ) {
 			//jogosultsag ellenorzes
+			$update = true;
 	
 			//torles 
 			$genmap_info['deleted'] = date('Y-m-d H:i:s');
@@ -1162,6 +1163,13 @@ function genmapper_footer_scripts () { ?>
 			  $('#genmapper_inprogress').hide();
 			});	
 			$('#edit-date').datepicker();
+			
+			$('#edit-date').on('blur', function(e) {
+				$('.docs-datepicker-container').hide();
+			})
+			$('#edit-date').on('keypress',function(e) { return false; } );
+
+			$('#edit-generation').prop('disabled', true);
 		} );
 
 	</script>

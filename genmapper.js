@@ -157,6 +157,7 @@ class GenMapper {
     '    <button id="edit-delete">' + i18next.t('editGroup.btnDelete') + '</button>' +
     '    <button onclick="genmapper.onLoad(\'file-input-subtree\')">' + i18next.t('editGroup.btnImportSubtree') + '</button>' +
     '    <input type="file" id="file-input-subtree" style="display:none;">' +
+//    '    <button onclick="genmapper.outputCsv()">' + i18next.t('editGroup.btnExportSubtree') + '</button>' +
     '  </div>' +
     '</div>'
 
@@ -305,6 +306,9 @@ class GenMapper {
     d3.select('#edit-cancel').on('click', () => { this.editGroupElement.style.display = 'none' })
     d3.select('#edit-delete').on('click', () => { this.removeNode(group) })
     d3.select('#file-input-subtree').on('change', () => { this.importFileSubtree(group) })
+
+    d3.select('#edit-date').on('keypressed', () => { false; })
+    
   }
 
   editGroup (groupData) {
@@ -722,8 +726,10 @@ class GenMapper {
     })
   }
 
-  outputCsv () {
-    const out = d3.csvFormatRows(this.data.map(function (d, i) {
+  outputCsv (rootNode) {
+	if ( typeof rootNode == 'undefined' ) ;
+	let dataBase = this.data;
+    const out = d3.csvFormatRows(dataBase.map(function (d, i) {
       const output = []
       template.fields.forEach((field) => {
         if (field.type === 'checkbox') {
