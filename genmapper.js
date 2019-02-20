@@ -1186,11 +1186,16 @@ class GenMapper {
 		else if ( data.result == 2 ) { /* genmap deleted */
 			//$("#genmapper_info-content select option:selected").remove();
 			window.location.reload(false);
+			//console.log('window.location.reload(false)');
 		}
 		else if ( data.result == 3 ) { /* genmap created */
 			if ( data.genmap_info ) {
 				that.genmap.id = data.genmap_info.id;
+				that.genmap.name  = data.genmap_info.name;
+				that.genmap.country_code  = data.genmap_info.country_code;
+				that.updateGenmapperInfoForm();
 				that.addNewGenmapToListbox(data.genmap_info);
+				
             }
 		}
 	});
