@@ -819,7 +819,7 @@ function ajax_genmapper_import_from_db()
 
 	
 	$csv = stream_get_contents($fp); // Fetch the contents of our CSV
-	$csv = count($csv)>0 ? $csv : $default_node_csv_line;
+	$csv = strlen($csv)>0 ? $csv : $default_node_csv_line;
 	
 	
 	
@@ -911,7 +911,7 @@ function ajax_genmapper_update_genmap_info()
 	
 			//torles 
 			$genmap_info['deleted'] = date('Y-m-d H:i:s');
-			$result=2;
+			$result = 2;
 		}
 	
 		
