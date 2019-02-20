@@ -47,6 +47,10 @@ require_once GENMAPPER_DIR.'/extras.inc.php';
 //add_action( 'init', 'genmapper_set_db_tables_name');
 
 
+function http() {
+	return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https':'http';
+}
+
 
 
 function genmapper_init()
@@ -79,13 +83,18 @@ function genmapper_init()
 
 	$genmapper_default_country_code = get_user_meta( get_current_user_id(), 'genmapper_country_code', true );
 	
-	if ( is_array($genmapper_default_country_code) && count($genmapper_default_country_code)>0 ) {
+	if ( empty($genmapper_default_country_code ) ) {
+		$genmapper_default_country_code = 'MUSTSETDEFAULTCOUNTRYCODE';
+	}
+	else if ( is_array($genmapper_default_country_code) && count($genmapper_default_country_code)>0 ) {
 		$genmapper_default_country_code = $genmapper_default_country_code[0];
 	}
-	else if ( is_string($genmapper_default_country_code) && count($genmapper_default_country_code)>1 ) {
+	
+	else if ( is_string($genmapper_default_country_code) && strlen($genmapper_default_country_code)>1 ) {
 	}
 	else {
-		$genmapper_default_country_code = 'TODODEFAULTCOUNTRYCODE';
+		
+		$genmapper_default_country_code = 'MUSTSETDEFAULTCOUNTRYCODE';
 	}
 
 	$genmapper_default_country_code = is_array($genmapper_default_country_code)?$genmapper_default_country_code[0]:$genmapper_default_country_code;
@@ -101,8 +110,8 @@ function genmapper_init()
 		) );
 	
 
-	$http = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https':'http';
-	wp_register_script( 'genmapper_google_api-async-defer', "$http://maps.googleapis.com/maps/api/js?key=".GENMAPPER_MAP_GOOGLE_API_KEY."&callback=genmapper_gmap_init&libraries=places" );
+	//$http = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https':'http';
+	wp_register_script( 'genmapper_google_api-async-defer', http()."://maps.googleapis.com/maps/api/js?key=".GENMAPPER_MAP_GOOGLE_API_KEY."&callback=genmapper_gmap_init&libraries=places" );
 	
 
 
@@ -396,7 +405,10 @@ function genmapper_country_select($selected=null, $args = array())
 	$size = $size ? ' size="'.$size.'"':'';
     
     
-    if ( is_string($selected) && count($selected)>0 )
+    if ( empty($selected) ) {
+	    $selected = array();
+    }
+    else if ( is_string($selected) && strlen($selected)>0 )
     {
 	    $selected = array($selected);
 	    
@@ -968,7 +980,7 @@ function update_extra_profile_fields( $user_id ) {
 	$genmapper_country_code = get_user_meta( $user_id, 'genmapper_country_code', true );
 	error_log('$genmapper_country_manager:'.var_export($genmapper_country_manager,1));
 	error_log('$genmapper_country_code:'.var_export($genmapper_country_code,1));
-	error_log('$_POST["genmapper_country_manager"]:'.var_export($_POST['genmapper_country_manager'],1));
+	error_log('$_POST["genmapper_country_manager"]:'.var_export(@$_POST['genmapper_country_manager'],1));
 	
 	$disabled = ! $genmapper_country_manager && ! is_super_admin() ? ' disabled':'';
 	//$disabled=false;
@@ -1034,8 +1046,8 @@ function genmapper_load_custom_wp_admin_style($hook) {
 		else if (  $usedMultiselect == 'dualistbox' ) {
 		//<script src="https://cdn.jsdelivr.net/npm/dual-listbox/dist/dual-listbox.min.js"></script>
 		//<link href="https://cdn.jsdelivr.net/npm/dual-listbox/dist/dual-listbox.css">
-			wp_register_script( 'multiselect', "https://cdn.jsdelivr.net/npm/dual-listbox/dist/dual-listbox.min.js" );
-			wp_register_style(  'multiselect_css', "https://cdn.jsdelivr.net/npm/dual-listbox/dist/dual-listbox.css" );
+			wp_register_script( 'multiselect', http()."://cdn.jsdelivr.net/npm/dual-listbox/dist/dual-listbox.min.js" );
+			wp_register_style(  'multiselect_css', http()."://cdn.jsdelivr.net/npm/dual-listbox/dist/dual-listbox.css" );
 		}
 		else
 		{
@@ -1180,15 +1192,29 @@ function genmapper_footer_scripts () { ?>
 function genmapper_head_scripts () { ?>
 	<script language="javascript" type="text/javascript">
 
+function whenAvailable(name, callback) {
+    var interval = 10; // ms
+    window.setTimeout(function() {
+        if (window[name]) {
+            callback(window[name]);
+        } else {
+            window.setTimeout(arguments.callee, interval);
+        }
+    }, interval);
+}
+
+
 	function genmapper_gmap_init()
 	{
 		console.log('gmap initialized');
+		whenAvailable('genmapper', function(){ 
 		var fieldname="edit-place";
 		var googleMapInput =  document.getElementById(fieldname);
 		var googleMapAutocomplete = new google.maps.places.Autocomplete(googleMapInput);
 		genmapper.nameMaxDisplayLenght = 14;
 		genmapper.redraw(template);
 		console.log(template);
+		});
 	}
 
 	</script>
