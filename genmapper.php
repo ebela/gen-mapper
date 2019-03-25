@@ -221,7 +221,9 @@ function genmapper_sc($atts, $content)
     
     $genmapper_info_content = '<span class="username">'. $display_name .'</span>
 	' . ( $cu->ID ? 
-		'| Genmaps: '.genmapper_genmap_select().' | '.'<input type="button" name="new_genmap" value="New genmap" onclick="javascript:window.location.reload(false);"> ' 
+		'| Genmaps: '.genmapper_genmap_select()
+			.' | ' . '<input type="button" name="new_genmap" value="New genmap" onclick="javascript:window.location.reload(false);">'
+			.' | ' . '<span>Switch view</span><input type="checkbox" checked="checked" name="switchMapLayoutOrientation" onclick="genmapper.switchMapLayoutOrientation()">' 
 		: 
 		'' ). '';	
     
@@ -354,7 +356,7 @@ function genmapper_genmap_select()
 	$h='<select class="select2" data-placeholder="Select genmap here to load from database" onchange="window.genmapper.selectGenmapOnChange(this);">'.PHP_EOL;
 	$h.='<option value="">Select genmap here to load from database</option>'.PHP_EOL;
 	
-	$q="SELECT `id`, `country_code`, `name`, DATE(`last_mod_date`) AS `mod_date` FROM $genmap_t_genmap WHERE `deleted` IS NULL  ORDER BY `last_mod_date` DESC";
+	//$q="SELECT `id`, `country_code`, `name`, DATE(`last_mod_date`) AS `mod_date` FROM $genmap_t_genmap WHERE `deleted` IS NULL  ORDER BY `country_code` ASC, `name` ASC,  `last_mod_date` DESC";
 	
 	$where = '';
 	if ( ! is_super_admin() )
@@ -370,7 +372,7 @@ function genmapper_genmap_select()
 		}
 		
 	}
-	$q="SELECT `id`, `country_code`, `name`, DATE(`last_mod_date`) AS `mod_date` FROM $genmap_t_genmap WHERE `deleted` IS NULL $where ORDER BY `last_mod_date` DESC";
+	$q="SELECT `id`, `country_code`, `name`, DATE(`last_mod_date`) AS `mod_date` FROM $genmap_t_genmap WHERE `deleted` IS NULL $where ORDER BY `country_code` ASC, `name` ASC, `last_mod_date` DESC";
 	
 	$rows=$wpdb->get_results($q);
 	

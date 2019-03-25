@@ -36,7 +36,7 @@ class GenMapper {
     this.alertmessagetextEl = 'alert-message-text'
     
     this.nameMaxDisplayLenght = 14;
-    
+    this.mapLayoutOrientation = false?'vertical':'horizontal';
     
 
     this.margin = {top: 50, right: 30, bottom: 50, left: 30}
@@ -424,6 +424,7 @@ class GenMapper {
   }
 
   redraw (template) {
+	 let mapLayoutOrientation =  this.mapLayoutOrientation
     // declares a tree layout and assigns the size
     const tree = d3.tree()
         .nodeSize([template.settings.nodeSize.width,
@@ -446,10 +447,16 @@ class GenMapper {
       .merge(link)
           .attr('class', 'link')
           .attr('d', function (d) {
-            return 'M' + d.x + ',' + d.y +
-               'C' + d.x + ',' + (d.y + (d.parent.y + boxHeight)) / 2 +
-               ' ' + d.parent.x + ',' + (d.y + (d.parent.y + boxHeight)) / 2 +
-               ' ' + d.parent.x + ',' + (d.parent.y + boxHeight)
+	          if ( mapLayoutOrientation == 'vertical')
+	          	return "M" + d.y + "," + d.x
+		         + "C" + (d.y + d.parent.y) / 2 + "," + d.x
+		         + " " + (d.y + d.parent.y) / 2 + "," + d.parent.x
+		         + " " + d.parent.y + "," + d.parent.x;
+		      else
+	            return 'M' + d.x + ',' + d.y +
+	               'C' + d.x + ',' + (d.y + (d.parent.y + boxHeight)) / 2 +
+	               ' ' + d.parent.x + ',' + (d.y + (d.parent.y + boxHeight)) / 2 +
+	               ' ' + d.parent.x + ',' + (d.parent.y + boxHeight)
           })
 
     // update the link text between the nodes
@@ -514,7 +521,10 @@ class GenMapper {
       return 'node' + (d.data.active ? ' node--active' : ' node--inactive')
     })
           .attr('transform', function (d) {
-            return 'translate(' + d.x + ',' + d.y + ')'
+            if ( mapLayoutOrientation == 'horizontal') 
+            	return 'translate(' + d.x + ',' + d.y + ')'
+            else
+            	return 'translate(' + d.y + ',' + d.x + ')'
           })
           .on('click', (d) => { this.popupEditGroupModal(d) })
 
@@ -1200,6 +1210,12 @@ class GenMapper {
 		}
 	});
 	$('#genmapper_info-editor').hide();
+  }
+  
+  switchMapLayoutOrientation() {
+	  
+	  this.mapLayoutOrientation = jQuery('input[type=checkbox][name=switchMapLayoutOrientation]').attr('checked') ? 'horizontal':'vertical';
+	  this.redraw( template) ;
   }
 
   

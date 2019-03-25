@@ -23,7 +23,7 @@ const template = {
           'date': 'Date started',
           'attenders': '# of Attenders',
           'believers': '# of Believers',
-          'baptized': '# of Baptized',
+          'baptized': '# of New Baptized',
           'church': 'Is church?',
           'elementWord': "Element: God's Word",
           'elementPrayer': 'Element: Prayer',
@@ -263,7 +263,7 @@ const template = {
     },
     {
       'header': 'leaderType',
-      'initial': 'fullTimeMissionary',
+      'initial': 'existingLayBeliever',
       'type': 'radio',
       'inheritsFrom': 'church-box',
       'values': [

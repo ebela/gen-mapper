@@ -51,6 +51,15 @@ word-wrap: normal;
 }
 
 
+
+/**** Print media ****/
+
+@media print { 
+ /* All your print styles go here */
+/* #header, #footer, #nav { display: none !important; } */ 
+ #genmapper_info-content{ display: none !important; }
+}
+
 /**** Basic elements ****/
 
 
