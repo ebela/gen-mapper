@@ -335,7 +335,33 @@ padding: 6px 10px;
 ';
     $content.= PHP_EOL;
 	$genmapper_displayed = true;
+
     
+    if ( isset($_GET['genmapdev']) ) {
+	$genmap_id=intval($_GET['genmapdev']);
+	$content= 'genmapdev actvie. selected genmap id: '.$genmap_id;
+	
+	
+	$genmaps = genmapper_get_genmaps();
+	
+	
+	foreach ( $genmaps as $gm ) {
+		//$nodesBefore=genmapper_get_nodes($genmap_id,$GLOBALS['genmap_fields_string'].', generation', 'ARRAY_A');
+		$count=genmapper_repair_genmap($gm->id);
+		//$nodesAfter=genmapper_get_nodes($genmap_id,$GLOBALS['genmap_fields_string'].', generation');
+	
+		
+	}
+	
+	$content.='<pre>';
+	//$content.=var_export($genmaps,1);
+	$content.='<hr>';
+	//$content.=var_export($nodesAfter,1);
+	$content.='</pre>';
+	
+	
+	
+    }
     return $content;
 }
 
@@ -479,6 +505,21 @@ function genmapper_create_genmap($gi = null)
 	return $wpdb->insert_id;
 }
 
+
+function genmapper_get_genmaps()
+{
+	global $wpdb;
+	global $genmap_t_genmap ;
+	$q="SELECT * -- `id`, `country_code`, `name`, DATE(`last_mod_date`) AS `mod_date` 
+	    FROM $genmap_t_genmap 
+	    WHERE `deleted` IS NULL  
+	    ORDER BY `id` -- `country_code` ASC, `name` ASC, `last_mod_date` DESC";
+	
+	$genmaps=$wpdb->get_results($q);
+	return $genmaps;
+}
+
+
 function genmapper_get_genmap($genmap_id)
 {
 	global $wpdb;
@@ -486,6 +527,30 @@ function genmapper_get_genmap($genmap_id)
 	$genmap_info=$wpdb->get_row("SELECT * FROM $genmap_t_genmap WHERE `id`=$genmap_id");
 	return $genmap_info;
 }
+
+
+function genmapper_get_nodes($genmap_id, $fields=null, $fetchMode="OBJECT")
+{
+	global $wpdb;
+	global $genmap_fields_string;
+	global $genmap_t_genmap_nodes;
+	global $genmap_t_genmap;
+
+	
+	if ( ! $genmap_id )
+	{
+		echo 'ERROR:'.__LINE__;
+		wp_die();
+	}
+	$fields_string = $fields?$fields:$genmap_fields_string;
+	$q="SELECT $fields_string  FROM $genmap_t_genmap_nodes  WHERE genmap_id=$genmap_id AND `deleted` IS NULL ORDER BY id";
+	//error_log("Query: ".PHP_EOL.$q.PHP_EOL);
+	$rows=$wpdb->get_results($q,$fetchMode);
+	
+	return $rows;
+	
+}
+
 
 function genmapper_is_node_exists($nodeData, $genmap_id=null)
 {
@@ -503,7 +568,7 @@ function genmapper_is_node_exists($nodeData, $genmap_id=null)
 	$whereIdAndParentId = "`id` = ".intval($nodeData['id'])." ";
 	$node_exists = $wpdb->get_var( "SELECT COUNT(*) FROM $genmap_t_genmap_nodes  WHERE $whereIdAndParentId AND node_type='node' AND genmap_id=$genmap_id AND `deleted` IS NULL" );
 	//error_log(__FUNCTION__.' node exists result: '.var_export($node_exists,1).'  return value: '.var_export($node_exists == 1,1));
-	error_log(__FUNCTION__.' '.$wpdb->last_query);
+	//error_log(__FUNCTION__.' '.$wpdb->last_query);
 	return  $node_exists > 0;
 }
 
@@ -537,13 +602,13 @@ function genmapper_add_node($nodeData, $genmap_id=null)
 		$nodeData['genmap_id'] = $genmap_id;
 	}
 	
-	error_log(__FUNCTION__.' nodeData -- '. var_export($nodeData,1));
+	//error_log(__FUNCTION__.' nodeData -- '. var_export($nodeData,1));
 	
 	//ha van a generaciot frissito node tomb akkor azt feldolgozzuk.
 	if ( isset($nodeData['_descendants']) ) {
 		$nodesToUpdate = $nodeData['_descendants'];
 		
-	error_log(__FUNCTION__.' _descendants -- '. var_export($nodesToUpdate,1));
+	//error_log(__FUNCTION__.' _descendants -- '. var_export($nodesToUpdate,1));
 		
 		unset($nodeData['_descendants']);
 		foreach ($nodesToUpdate as $n ) {
@@ -557,7 +622,7 @@ function genmapper_add_node($nodeData, $genmap_id=null)
 		
 	}
 	$wpdb->insert($genmap_t_genmap_nodes, $nodeData );
-	error_log(__FUNCTION__.' '.$wpdb->last_query);
+	//error_log(__FUNCTION__.' '.$wpdb->last_query);
 	return $wpdb->insert_id;
 }
 
@@ -591,7 +656,7 @@ function genmapper_remove_node($nodeData, $genmap_id=null)
 		$sqlFields['node_type']=$nodeData['node_type'];
 	}
 
-	error_log('deleting node '.var_export($nodeData,1 ));  
+	//error_log('deleting node '.var_export($nodeData,1 ));  
 	$updated_rowscount = $wpdb->update( 
 		$genmap_t_genmap_nodes, 
 		$sqlFields,
@@ -605,8 +670,8 @@ function genmapper_remove_node($nodeData, $genmap_id=null)
 			   
 		
 		);  
-	error_log(__FUNCTION__.' '.$wpdb->last_query);
-	error_log('deleted row count: '.var_export($updated_rowscount ,1)) ;  
+	//error_log(__FUNCTION__.' '.$wpdb->last_query);
+	//error_log('deleted row count: '.var_export($updated_rowscount ,1)) ;  
 	
 	return  $updated_rowscount;
 }
@@ -634,7 +699,7 @@ function genmapper_fix_node_properties_type($node)
 
 function ajax_genmapper_nodes2db()
 {
-//	echo('called '.__FUNCTION__);
+	echo('called '.__FUNCTION__);
 	error_log(__FUNCTION__.' post count:'.count($_POST).' ..  nodes count:'.count($_POST['nodes']).' _POST: '. var_export($_POST,1).'  isuser '.PHP_EOL.var_export(is_user_logged_in(),1));
 	error_log(__FUNCTION__.' start');
 	
@@ -650,10 +715,10 @@ function ajax_genmapper_nodes2db()
 		}
 		
 		$nodes = isset($_POST['nodes']) && is_array($_POST['nodes']) ? $_POST['nodes']:null;
-		error_log(__FUNCTION__.' nodes: '.var_export($nodes,1));
+		//error_log(__FUNCTION__.' nodes: '.var_export($nodes,1));
 	
 		genmapper_store_nodes($genmap_id, $nodes);
-		error_log(__FUNCTION__.' end');
+		//error_log(__FUNCTION__.' end');
 	
 		$answer['genmap']=genmapper_get_genmap($genmap_id);
 		$answer['message']='Uploaded nodes stored in db';	
@@ -672,36 +737,59 @@ function ajax_genmapper_nodes2db()
 }
 
 function genmapper_store_nodes($genmap_id, $nodes) {
+	return genmapper_repair_genmap($genmap_id, $nodes);
+}
+//copyof  genmapper_store_nodes($genmap_id, $nodes) 
+function genmapper_repair_genmap($genmap_id, $nodes=null)
+{
+	error_log(__FUNCTION__.' genmap id '.$genmap_id.' nodes '.var_export($nodes,1));
+
+	//get nodes
+	$nodes = $nodes ? $nodes : genmapper_get_nodes($genmap_id,$GLOBALS['genmap_fields_string'].', generation','ARRAY_A');
+	
+	$modified_node_count = 0;
 	
 	if ( is_array($nodes) ) {
 		global $wpdb;
 		global $genmap_t_genmap_nodes;
-		$table_name = $genmap_t_genmap_nodes;
-		error_log(__FUNCTION__.' storing nodes '.var_export($nodes,1));
-		
-		//shadow copy of nodes.. maybe not needed..
-		//azaz "repair" of array ugymond
+
+		//id szerint idexelt tombbe teszem a node-okat
 		$_nodes = array();
 		foreach ($nodes as $n )
 		{
 			$idx = intval($n['id']);
 			$_nodes[$idx] = $n;
 		}
-		error_log(__FUNCTION__.' "repaired" nodes '.var_export($_nodes,1));
+		error_log(__FUNCTION__.' id indexed nodes '.var_export($_nodes,1));
 
 		foreach ($_nodes as $n )
 		{
 			$generation=0;
 			$_i=$n['id'];$safetyexitcounter=100000;
-			while ( $_nodes[$_i]['parentId']!='' && $safetyexitcounter-- ) { 
-				$generation++; 
-				$_i=$_nodes[$_i]['parentId']; 
+			$curGen = isset($_nodes[$_i]['generation'])?$_nodes[$_i]['generation']:-2;
+			if ($_nodes[$_i]['active'] == '1' ) {			
+				while ( $_nodes[$_i]['parentId']!='' && !($_nodes[$_i]['parentId']=='' && $_nodes[$_i]['active']  != '1' ) && $safetyexitcounter-- ) { 
+					$_i=$_nodes[$_i]['parentId']; 
+					if ( $_nodes[$_i]['active']  == '1' ) {
+						$generation++; 
+					}
+				}
+			}
+			else {
+			    $generation = -1;
 			}
 			$n['generation']=$generation;
-			error_log(__FUNCTION__.' storing node '.var_export($n,1));
-			genmapper_add_node($n, $genmap_id);
+			if ( $curGen != $generation ) {
+				error_log(__FUNCTION__.' storing node '.var_export($n,1));
+				genmapper_add_node($n, $genmap_id);
+				$modified_node_count++;
+			}
 		}
 	}
+	
+	error_log('modified node count: '.$modified_node_count);
+	return $modified_node_count;
+	
 }
 function ajax_genmapper_send_event()
 {
@@ -750,6 +838,13 @@ function ajax_genmapper_send_event()
 		$answer['removed_node_count'] = genmapper_remove_node($data['nodeData'],$data['genmap']['id']);
 	}
 	
+	if ( count($answer)>0 ) {
+	    $start=microtime(true);
+	    genmapper_repair_genmap($data['genmap']['id']);
+	    $time_elapsed_secs= ( microtime(true)-$start );
+	    error_log('repair time: '.$time_elapsed_secs);
+	}
+	
 	
 
 	if ( count($error) )
@@ -780,15 +875,18 @@ function ajax_genmapper_import_from_db()
 		echo 'ERROR:'.__LINE__;
 		wp_die();
 	}
+	
+	genmapper_repair_genmap($genmap_id);
 	$eol='';
 	$csv = $genmap_fields_string;
 	$csv.=PHP_EOL;
 
 
 	//header('Content-type: text/plain');
-	$q="SELECT $genmap_fields_string FROM $genmap_t_genmap_nodes  WHERE genmap_id=$genmap_id AND `deleted` IS NULL ORDER BY id";
-	error_log("Query: ".PHP_EOL.$q.PHP_EOL);
-	$rows=$wpdb->get_results($q);
+//	$q="SELECT $genmap_fields_string FROM $genmap_t_genmap_nodes  WHERE genmap_id=$genmap_id AND `deleted` IS NULL ORDER BY id";
+//	error_log("Query: ".PHP_EOL.$q.PHP_EOL);
+//	$rows=$wpdb->get_results($q);
+	$rows = genmapper_get_nodes($genmap_id);
 	if ( false ) //regi stringes megoldas
 	{
 	foreach ($rows as $r )
@@ -822,8 +920,6 @@ function ajax_genmapper_import_from_db()
 	
 	$csv = stream_get_contents($fp); // Fetch the contents of our CSV
 	$csv = strlen($csv)>0 ? $csv : $default_node_csv_line;
-	
-	
 	
 	fclose($fp); // Close our pointer and free up memory and /tmp space
 	}
